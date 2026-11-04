@@ -3,7 +3,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package Vista;
-
 import java.awt.GridLayout;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

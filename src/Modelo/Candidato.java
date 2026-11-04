@@ -3,7 +3,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package modelo;
-
 public class Candidato {
     
     private long numeroIdentificacion;
@@ -25,6 +24,7 @@ public class Candidato {
     public Candidato() {
     }
 
+    
     public long getNumeroIdentificacion() { return numeroIdentificacion; }
     public void setNumeroIdentificacion(long numeroIdentificacion) { this.numeroIdentificacion = numeroIdentificacion; }
 

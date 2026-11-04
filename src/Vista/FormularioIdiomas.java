@@ -3,7 +3,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package Vista; 
-
 import java.awt.GridLayout;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -119,4 +118,5 @@ public class FormularioIdiomas extends JFrame {
         this.dispose();
         new FormularioExperiencia(this.idCandidato).setVisible(true);
     }
+    
 }

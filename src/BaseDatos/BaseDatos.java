@@ -27,4 +27,3 @@ public class BaseDatos {
         return con;
     }
 }
-    

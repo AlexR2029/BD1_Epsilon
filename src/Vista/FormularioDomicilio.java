@@ -3,7 +3,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package Vista;
-
 import java.awt.GridLayout;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -75,4 +74,5 @@ public class FormularioDomicilio extends JFrame {
             JOptionPane.showMessageDialog(this, "Error al guardar domicilio: " + e.getMessage());
         }
     }
+    
 }
