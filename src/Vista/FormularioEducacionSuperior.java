@@ -45,19 +45,16 @@ public class FormularioEducacionSuperior extends JFrame {
         add(new JLabel(" Mes Terminado (Opcional):")); txtMes = new JTextField(); add(txtMes);
         add(new JLabel(" Año Terminado (Opcional):")); txtAnio = new JTextField(); add(txtAnio);
 
-        // --- FILA DE BOTONES 1 ---
         btnOmitir = new JButton("Omitir (No aplica)"); 
         add(btnOmitir);
         
         btnAgregarOtro = new JButton("Guardar y Agregar Otro"); 
         add(btnAgregarOtro);
 
-        // --- FILA DE BOTONES 2 ---
         add(new JLabel("")); // Espacio en blanco para empujar el botón a la derecha
         btnGuardar = new JButton("Guardar y Continuar"); 
         add(btnGuardar);
 
-        // Acciones
         btnAgregarOtro.addActionListener(e -> {
             if(registrarEnBD()) {
                 JOptionPane.showMessageDialog(this, "Título guardado. Puedes ingresar el siguiente.");
@@ -75,9 +72,7 @@ public class FormularioEducacionSuperior extends JFrame {
         btnOmitir.addActionListener(e -> saltarIdiomas());
     }
 
-    // Método centralizado para no repetir el código SQL en ambos botones
     private boolean registrarEnBD() {
-        // Validación básica para no guardar en blanco
         if(txtTitulo.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "El Título Obtenido no puede estar vacío.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return false;
@@ -133,7 +128,7 @@ public class FormularioEducacionSuperior extends JFrame {
         txtTarjeta.setText("");
         txtMes.setText("");
         txtAnio.setText("");
-        txtTitulo.requestFocus(); // Pone el cursor de nuevo en el primer campo
+        txtTitulo.requestFocus();
     }
     
     private void saltarIdiomas() {
