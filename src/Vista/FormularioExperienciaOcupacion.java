@@ -22,6 +22,9 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
 
     private boolean registrarOcupacion() {
         try {
+            if (numeroIdentificacionCandidato <= 0) {
+                throw new IllegalArgumentException("La identificación del candidato no es válida.");
+            }
             String ocupacion = jTextField1.getText().trim();
             if (ocupacion.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "El campo de ocupación es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -39,12 +42,18 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
 
             byte anios = Byte.parseByte(aniosStr); 
             byte meses = Byte.parseByte(mesesStr); 
+            if (anios < 0 || meses < 0 || meses > 11) {
+                throw new IllegalArgumentException("Los años deben ser positivos y los meses deben estar entre 0 y 11.");
+            }
 
             BaseDatos bd = new BaseDatos();
             Connection conexion = bd.getConexion();
+            if (conexion == null) {
+                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+            }
 
             String sql = "INSERT INTO EXPERIENCIAS_OCUPACIONES_CANDIDATOS (numero_identificacion_candidato, ocupacion, anio_experiencia, meses_experiencia) VALUES (?, ?, ?, ?)";
-            PreparedStatement pst = conexion.prepareStatement(sql);
+            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
             pst.setLong(1, numeroIdentificacionCandidato);
             pst.setString(2, ocupacion);
             pst.setByte(3, anios);
@@ -52,10 +61,14 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
 
             pst.executeUpdate();
             conexion.close();
+            }
             return true;
 
         } catch (NumberFormatException nfe) {
             JOptionPane.showMessageDialog(this, "Por favor ingrese números válidos en los campos de años y meses.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+            return false;
+        } catch (IllegalArgumentException iae) {
+            JOptionPane.showMessageDialog(this, iae.getMessage(), "Validación", JOptionPane.WARNING_MESSAGE);
             return false;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al guardar en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

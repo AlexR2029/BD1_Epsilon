@@ -39,6 +39,9 @@ private long numeroIdentificacionCandidato;
 
     private boolean registrarIdiomaBD() {
         try {
+            if (numeroIdentificacionCandidato <= 0) {
+                throw new IllegalArgumentException("La identificación del candidato no es válida.");
+            }
             String nombreIdioma = jTextField1.getText().trim().toUpperCase();
             
             if (nombreIdioma.isEmpty()) {
@@ -69,9 +72,12 @@ private long numeroIdentificacionCandidato;
             // Conexión y centencia SQL para IDIOMAS_CANDIDATOS
             BaseDatos bd = new BaseDatos();
             Connection conexion = bd.getConexion();
+            if (conexion == null) {
+                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+            }
 
             String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
-            PreparedStatement pst = conexion.prepareStatement(sql);
+            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
             pst.setLong(1, numeroIdentificacionCandidato);
             pst.setString(2, idioma.getNombreIdioma());
             pst.setString(3, idioma.getHabla().name());
@@ -80,8 +86,12 @@ private long numeroIdentificacionCandidato;
 
             pst.executeUpdate();
             conexion.close();
+            }
             return true;
 
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Validación", JOptionPane.WARNING_MESSAGE);
+            return false;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al registrar el idioma en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             return false;

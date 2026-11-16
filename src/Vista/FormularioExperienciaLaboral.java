@@ -30,6 +30,7 @@ private long numeroIdentificacionCandidato;
     }
 
     private boolean registrarExperiencia() {
+        Connection conexion = null;
         try {
             String nombreEmpresa = jTextField1.getText().trim();
             if (nombreEmpresa.isEmpty()) {
@@ -46,11 +47,29 @@ private long numeroIdentificacionCandidato;
             String telefono = jTextField6.getText().trim();
             String direccion = jTextField7.getText().trim();
 
+            if (pais.isEmpty() || departamento.isEmpty() || municipio.isEmpty()
+                    || email.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Complete todos los datos de la empresa.",
+                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+
             Empresa empresa = new Empresa(nombreEmpresa, tipoEmpresa, pais, departamento, municipio, email, telefono, direccion);
 
             String cargo = jTextField8.getText().trim();
             String dependencia = jTextField9.getText().trim();
+            if (cargo.isEmpty() || dependencia.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Complete cargo y dependencia.",
+                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
 
+            if (jTextField10.getText().trim().isEmpty() || jTextField11.getText().trim().isEmpty()
+                    || jTextField12.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Complete la fecha de ingreso.",
+                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
             int diaIng = Integer.parseInt(jTextField10.getText().trim());
             int mesIng = Integer.parseInt(jTextField11.getText().trim());
             int anioIng = Integer.parseInt(jTextField12.getText().trim());
@@ -67,10 +86,14 @@ private long numeroIdentificacionCandidato;
             ExperienciaLaboral experiencia = new ExperienciaLaboral(empresa, cargo, dependencia, fechaIngreso, fechaRetiro);
 
             BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
+            conexion = bd.getConexion();
+            if (conexion == null) {
+                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+            }
+            conexion.setAutoCommit(false);
 
             String sqlEmpresa = "INSERT INTO EMPRESAS (nombre, tipo_empresa, pais, departamento, municipio, email_empresa, telefono, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tipo_empresa=VALUES(tipo_empresa)";
-            PreparedStatement pstEmp = conexion.prepareStatement(sqlEmpresa);
+            try (PreparedStatement pstEmp = conexion.prepareStatement(sqlEmpresa)) {
             pstEmp.setString(1, empresa.getNombre());
             pstEmp.setString(2, empresa.getTipo().name());
             pstEmp.setString(3, empresa.getPais());
@@ -80,9 +103,10 @@ private long numeroIdentificacionCandidato;
             pstEmp.setString(7, empresa.getTelefono());
             pstEmp.setString(8, empresa.getDireccion());
             pstEmp.executeUpdate();
+            }
 
             String sqlEmpleo = "INSERT INTO EMPLEOS_CANDIDATOS (numero_identificacion_candidato, nombre_empresa, cargo, dependencia, fecha_ingreso, fecha_retiro) VALUES (?, ?, ?, ?, ?, ?)";
-            PreparedStatement pstEmpleo = conexion.prepareStatement(sqlEmpleo);
+            try (PreparedStatement pstEmpleo = conexion.prepareStatement(sqlEmpleo)) {
             pstEmpleo.setLong(1, numeroIdentificacionCandidato);
             pstEmpleo.setString(2, empresa.getNombre());
             pstEmpleo.setString(3, experiencia.getCargo());
@@ -96,15 +120,42 @@ private long numeroIdentificacionCandidato;
             }
 
             pstEmpleo.executeUpdate();
-            conexion.close();
+            }
+            conexion.commit();
             return true;
 
         } catch (NumberFormatException nfe) {
+            rollback(conexion);
             JOptionPane.showMessageDialog(this, "Por favor verifique que los campos numéricos (fechas) sean válidos.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
             return false;
         } catch (Exception e) {
+            rollback(conexion);
             JOptionPane.showMessageDialog(this, "Error al guardar la experiencia laboral: " + e.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
             return false;
+        } finally {
+            close(conexion);
+        }
+    }
+
+    private void rollback(Connection conexion) {
+        if (conexion != null) {
+            try {
+                conexion.rollback();
+            } catch (java.sql.SQLException ex) {
+                JOptionPane.showMessageDialog(this, "No fue posible deshacer el registro incompleto: "
+                        + ex.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void close(Connection conexion) {
+        if (conexion != null) {
+            try {
+                conexion.close();
+            } catch (java.sql.SQLException ex) {
+                JOptionPane.showMessageDialog(this, "No fue posible cerrar la conexión: "
+                        + ex.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
