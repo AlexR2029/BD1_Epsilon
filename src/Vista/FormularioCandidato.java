@@ -39,12 +39,22 @@ public class FormularioCandidato extends javax.swing.JFrame {
     }
 
     public void guardarTodoElFormulario() {
+    Connection conexion = null;
     try {
         String numIdentificacion = jTextField4.getText().trim();
         String tipoDoc = jComboBox1.getSelectedItem().toString(); 
         String nombres = jTextField3.getText().trim();
         String primerApellido = jTextField1.getText().trim();
         String segundoApellido = jTextField2.getText().trim();
+
+        if (numIdentificacion.isEmpty() || nombres.isEmpty() || primerApellido.isEmpty()
+                || !jRadioButton1.isSelected() && !jRadioButton2.isSelected()
+                || !jRadioButton3.isSelected() && !jRadioButton4.isSelected()) {
+            JOptionPane.showMessageDialog(this,
+                    "Complete identificación, nombres, primer apellido, sexo y nacionalidad.",
+                    "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         
         String sexo = jRadioButton1.isSelected() ? "M" : "F";
 
@@ -66,12 +76,38 @@ public class FormularioCandidato extends javax.swing.JFrame {
         String telefono = jTextField16.getText().trim();
         String email = jTextField17.getText().trim();
 
+        if (paisNac.isEmpty() || deptoNac.isEmpty() || munNac.isEmpty()
+                || direccion.isEmpty() || paisDom.isEmpty() || deptoDom.isEmpty()
+                || munDom.isEmpty() || telefono.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Complete todos los datos de nacimiento, domicilio y contacto.",
+                    "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         String numLibretaStr = jTextField18.getText().trim();
         String distritoMil = jTextField19.getText().trim();
         String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
 
         BaseDatos bd = new BaseDatos();
-        Connection conexion = bd.getConexion();
+        conexion = bd.getConexion();
+        if (conexion == null) {
+            throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+        }
+        conexion.setAutoCommit(false);
+
+        String sqlDocumento = "INSERT IGNORE INTO TIPOS_DOCUMENTO (codigo, nombre) VALUES (?, ?)";
+        try (PreparedStatement pstDocumento = conexion.prepareStatement(sqlDocumento)) {
+            pstDocumento.setString(1, tipoDoc);
+            pstDocumento.setString(2, nombreDocumento(tipoDoc));
+            pstDocumento.executeUpdate();
+        }
+
+        String sqlMunicipio = "INSERT IGNORE INTO MUNICIPIOS (nombre, departamento, pais) VALUES (?, ?, ?)";
+        try (PreparedStatement pstMunicipio = conexion.prepareStatement(sqlMunicipio)) {
+            registrarMunicipio(pstMunicipio, munNac, deptoNac, paisNac);
+            registrarMunicipio(pstMunicipio, munDom, deptoDom, paisDom);
+        }
 
         String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, pais_nacimiento, departamento_nacimiento, municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         PreparedStatement pst1 = conexion.prepareStatement(sqlCandidato);
@@ -101,16 +137,21 @@ public class FormularioCandidato extends javax.swing.JFrame {
         pst2.executeUpdate();
 
         if (!numLibretaStr.isEmpty() && claseLibreta != null) {
+            if (distritoMil.isEmpty()) {
+                throw new IllegalArgumentException("El distrito militar es obligatorio cuando registra libreta.");
+            }
+
             String sqlLibreta = "INSERT INTO LIBRETAS_MILITARES (numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)";
-            PreparedStatement pst3 = conexion.prepareStatement(sqlLibreta);
+            try (PreparedStatement pst3 = conexion.prepareStatement(sqlLibreta)) {
             pst3.setLong(1, Long.parseLong(numLibretaStr));
             pst3.setString(2, claseLibreta);
             pst3.setString(3, distritoMil);
             pst3.setLong(4, Long.parseLong(numIdentificacion));
             pst3.executeUpdate();
+            }
         }
 
-        conexion.close();
+        conexion.commit();
         JOptionPane.showMessageDialog(this, "¡Candidato registrado con éxito en la base de datos del equipo!");
         this.dispose();
         
@@ -119,11 +160,47 @@ public class FormularioCandidato extends javax.swing.JFrame {
         new FormularioEducacionBasica(idCandidato).setVisible(true);
         
     } catch (NumberFormatException nfe) {
+        if (conexion != null) {
+            try { conexion.rollback(); } catch (java.sql.SQLException ignored) { }
+        }
         JOptionPane.showMessageDialog(this, "Por favor, verifica que los campos numéricos (Identificación, Teléfono, Fechas) contengan solo números.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+    } catch (IllegalArgumentException iae) {
+        if (conexion != null) {
+            try { conexion.rollback(); } catch (java.sql.SQLException ignored) { }
+        }
+        JOptionPane.showMessageDialog(this, iae.getMessage(), "Campos incompletos", JOptionPane.WARNING_MESSAGE);
     } catch (Exception e) {
+        if (conexion != null) {
+            try { conexion.rollback(); } catch (java.sql.SQLException ignored) { }
+        }
         JOptionPane.showMessageDialog(this, "Error de Base de Datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    } finally {
+        if (conexion != null) {
+            try { conexion.close(); } catch (java.sql.SQLException ignored) { }
+        }
     }
 }
+
+    private void registrarMunicipio(PreparedStatement sentencia, String municipio,
+            String departamento, String pais) throws java.sql.SQLException {
+        sentencia.setString(1, municipio);
+        sentencia.setString(2, departamento);
+        sentencia.setString(3, pais);
+        sentencia.executeUpdate();
+    }
+
+    private String nombreDocumento(String codigo) {
+        switch (codigo) {
+            case "CC":
+                return "Cédula de ciudadanía";
+            case "CE":
+                return "Cédula de extranjería";
+            case "PAS":
+                return "Pasaporte";
+            default:
+                throw new IllegalArgumentException("Tipo de documento no válido.");
+        }
+    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
