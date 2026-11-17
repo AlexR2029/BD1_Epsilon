@@ -1,3 +1,22 @@
 nbproject/private/
+build-impl.xml
+genfiles.properties
 project.properties
 project.xml
+build/
+
+dist/
+
+# Credenciales locales
+
+.env
+
+# Reportes de pruebas (locales)
+
+docs/pruebas/
+
+# Configuración local de Claude Code
+
+CLAUDE.md
+
+.claude/
