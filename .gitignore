@@ -6,3 +6,11 @@ project.xml
 build/
 
 dist/
+
+# Credenciales locales
+
+.env
+
+# Reportes de pruebas (locales)
+
+docs/pruebas/
