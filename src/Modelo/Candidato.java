@@ -76,10 +76,20 @@ public class Candidato implements Serializable {
     public void setNacionalidad(Nacionalidad value) { nacionalidad = value; }
     public LocalDate getFechaNacimiento() { return fechaNacimiento; }
     public void setFechaNacimiento(LocalDate value) { fechaNacimiento = value; }
+    public String getPaisNacimiento() { return paisNacimiento; }
+    public void setPaisNacimiento(String value) { paisNacimiento = value; }
+    public String getDeptoNacimiento() { return deptoNacimiento; }
+    public void setDeptoNacimiento(String value) { deptoNacimiento = value; }
+    public String getMunicipioNacimiento() { return municipioNacimiento; }
+    public void setMunicipioNacimiento(String value) { municipioNacimiento = value; }
     public String getEmail() { return email; }
     public void setEmail(String value) { email = value; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String value) { telefono = value; }
+    public boolean isManifiestaJuramento() { return manifiestaJuramento; }
+    public void setManifiestaJuramento(boolean value) { manifiestaJuramento = value; }
+    public String getObservacionesRRHH() { return observacionesRRHH; }
+    public void setObservacionesRRHH(String value) { observacionesRRHH = value; }
     public Domicilio getDomicilio() { return domicilio; }
     public void setDomicilio(Domicilio value) { domicilio = value; }
     public LibretaMilitar getLibretaMilitar() { return libretaMilitar; }

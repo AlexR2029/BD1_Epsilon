@@ -63,11 +63,23 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
 
             Integer mes = jTextField3.getText().trim().isEmpty() ? null : Integer.parseInt(jTextField3.getText().trim());
             Integer anio = jTextField4.getText().trim().isEmpty() ? null : Integer.parseInt(jTextField4.getText().trim());
+            if (mes != null && (mes < 1 || mes > 12)) {
+                throw new IllegalArgumentException("El mes de terminación debe estar entre 1 y 12.");
+            }
+            if (anio != null && (anio < 1900 || anio > java.time.Year.now().getValue())) {
+                throw new IllegalArgumentException("El año de terminación no es válido.");
+            }
 
             String tarjetaStr = jTextField5.getText().trim();
             String tarjetaProfesional = tarjetaStr.isEmpty() ? null : tarjetaStr;
 
             EducacionSuperior eduSup = new EducacionSuperior(titulo, mes, anio, modalidad, semestres, graduado, tarjetaProfesional);
+
+            BaseDatos bd = new BaseDatos();
+            Connection conexion = bd.getConexion();
+            if (conexion == null) {
+                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+            }
 
             String sql = "INSERT INTO EDUCACION_SUPERIOR_CANDIDATOS (numero_identificacion_candidato, titulo_obtenido, numero_tarjeta_profesional, modalidad_academica, semestres_aprobados, graduado, mes_terminacion, anio_terminacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pst = conexion.prepareStatement(sql);
@@ -101,6 +113,9 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
 
         } catch (NumberFormatException nfe) {
             JOptionPane.showMessageDialog(this, "Por favor verifique que los campos numéricos (Semestres, Mes, Año, Tarjeta) contengan valores válidos.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+            return false;
+        } catch (IllegalArgumentException iae) {
+            JOptionPane.showMessageDialog(this, iae.getMessage(), "Campos incompletos", JOptionPane.WARNING_MESSAGE);
             return false;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al guardar en la base de datos: " + e.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
