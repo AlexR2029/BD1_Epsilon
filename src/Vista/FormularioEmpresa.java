@@ -20,7 +20,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 /** Formulario independiente para registrar una empresa. */
-public class FormularioEmpresa extends JFrame {
+public class FormularioEmpresa extends javax.swing.JFrame {
 
     private final JTextField txtNombre = new JTextField();
     private final JComboBox<String> cbTipo = new JComboBox<>(new String[]{"PUBLICA", "PRIVADA"});
