@@ -13,9 +13,9 @@ public class BaseDatos {
     private final String url = System.getProperty("mysql.url",
             "jdbc:mysql://localhost:3306/" + bd + "?useSSL=false&serverTimezone=UTC");
     private final String user = System.getProperty("mysql.user",
-            System.getenv().getOrDefault("MYSQL_USER", "root"));
+            System.getenv().getOrDefault("MYSQL_USER", ""));
     private final String password = System.getProperty("mysql.password",
-            System.getenv().getOrDefault("MYSQL_PASSWORD", "1708151516Hpta27/08/2025"));
+            System.getenv().getOrDefault("MYSQL_PASSWORD", ""));
     
     public Connection getConexion() {
         Connection con = null;
