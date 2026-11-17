@@ -38,7 +38,8 @@ private long numeroIdentificacionCandidato;
     }
 
     private boolean registrarIdiomaBD() {
-        try {
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
             String nombreIdioma = jTextField1.getText().trim().toUpperCase();
             
             if (nombreIdioma.isEmpty()) {
@@ -67,9 +68,6 @@ private long numeroIdentificacionCandidato;
             Idioma idioma = new Idioma(nombreIdioma, habla, lectura, escritura);
 
             // Conexión y centencia SQL para IDIOMAS_CANDIDATOS
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-
             String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement pst = conexion.prepareStatement(sql);
             pst.setLong(1, numeroIdentificacionCandidato);
@@ -79,7 +77,6 @@ private long numeroIdentificacionCandidato;
             pst.setString(5, idioma.getEscritura().name());
 
             pst.executeUpdate();
-            conexion.close();
             return true;
 
         } catch (Exception e) {
@@ -231,8 +228,8 @@ private long numeroIdentificacionCandidato;
                 new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Proceso de registro de idioma realizado con éxito!");
             this.dispose();
+            new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
         }
     }//GEN-LAST:event_jButton2ActionPerformed
 
