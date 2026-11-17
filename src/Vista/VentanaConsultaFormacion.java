@@ -2,6 +2,7 @@ package Vista;
 
 import BaseDatos.BaseDatos;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
@@ -9,13 +10,15 @@ import javax.swing.table.DefaultTableModel;
 
 public class VentanaConsultaFormacion extends javax.swing.JFrame {
 
-    public VentanaConsultaFormacion() {
+    public VentanaConsultaFormacion(long identificacion) {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        cargarDatosFormacion();
+        setTitle("Formación académica - " + identificacion);
+        cargarDatosFormacion(identificacion);
     }
 
-    private void cargarDatosFormacion() {
+    private void cargarDatosFormacion(long identificacion) {
         DefaultTableModel modelo = new DefaultTableModel();
         modelo.addColumn("Cédula");
         modelo.addColumn("Nombre Completo");
@@ -38,36 +41,35 @@ public class VentanaConsultaFormacion extends javax.swing.JFrame {
                 + "es.titulo_obtenido AS titulo_superior, es.modalidad_academica, es.semestres_aprobados, es.graduado "
                 + "FROM candidatos c "
                 + "LEFT JOIN educacion_basica_candidatos eb ON c.numero_identificacion = eb.numero_identificacion_candidato "
-                + "LEFT JOIN educacion_superior_candidatos es ON c.numero_identificacion = es.numero_identificacion_candidato";
+                + "LEFT JOIN educacion_superior_candidatos es ON c.numero_identificacion = es.numero_identificacion_candidato "
+                + "WHERE c.numero_identificacion = ?";
 
-        try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery(sql);
-
-            while (rs.next()) {
-                modelo.addRow(new Object[]{
-                    rs.getLong("numero_identificacion"),
-                    rs.getString("nombre_completo"),
-                    rs.getString("email"),
-                    rs.getString("telefono"),
-                    rs.getObject("ultimo_grado_aprobado"),
-                    rs.getString("titulo_basica"),
-                    rs.getObject("anio_grado"),
-                    rs.getString("titulo_superior"),
-                    rs.getString("modalidad_academica"),
-                    rs.getObject("semestres_aprobados"),
-                    rs.getObject("graduado") == null ? "" : (rs.getBoolean("graduado") ? "Sí" : "No")
-                });
+        try (Connection con = new BaseDatos().getConexion()) {
+            if (con == null) return; // BaseDatos ya mostró el error de conexión
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setLong(1, identificacion);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        modelo.addRow(new Object[]{
+                            rs.getLong("numero_identificacion"),
+                            rs.getString("nombre_completo"),
+                            rs.getString("email"),
+                            rs.getString("telefono"),
+                            rs.getObject("ultimo_grado_aprobado"),
+                            rs.getString("titulo_basica"),
+                            rs.getObject("anio_grado"),
+                            rs.getString("titulo_superior"),
+                            rs.getString("modalidad_academica"),
+                            rs.getObject("semestres_aprobados"),
+                            rs.getObject("graduado") == null ? "" : (rs.getBoolean("graduado") ? "Sí" : "No")
+                        });
+                    }
+                }
             }
-
-            con.close();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -146,7 +148,7 @@ public class VentanaConsultaFormacion extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new VentanaConsultaFormacion().setVisible(true);
+                new VentanaConsultaFormacion(0L).setVisible(true);
             }
         });
     }

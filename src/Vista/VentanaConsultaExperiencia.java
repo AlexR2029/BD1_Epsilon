@@ -2,6 +2,7 @@ package Vista;
 
 import BaseDatos.BaseDatos;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
@@ -9,13 +10,15 @@ import javax.swing.table.DefaultTableModel;
 
 public class VentanaConsultaExperiencia extends javax.swing.JFrame {
 
-    public VentanaConsultaExperiencia() {
+    public VentanaConsultaExperiencia(long identificacion) {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        cargarDatosExperiencia();
+        setTitle("Experiencia laboral - " + identificacion);
+        cargarDatosExperiencia(identificacion);
     }
 
-    private void cargarDatosExperiencia() {
+    private void cargarDatosExperiencia(long identificacion) {
         DefaultTableModel modelo = new DefaultTableModel();
         modelo.addColumn("Cédula");
         modelo.addColumn("Nombre Completo");
@@ -37,30 +40,30 @@ public class VentanaConsultaExperiencia extends javax.swing.JFrame {
                 + "ec.fecha_ingreso, ec.fecha_retiro "
                 + "FROM candidatos c "
                 + "LEFT JOIN empleos_candidatos ec ON c.numero_identificacion = ec.numero_identificacion_candidato "
-                + "LEFT JOIN empresas e ON ec.nombre_empresa = e.nombre";
+                + "LEFT JOIN empresas e ON ec.nombre_empresa = e.nombre "
+                + "WHERE c.numero_identificacion = ? ORDER BY ec.fecha_ingreso";
 
-        try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery(sql);
-
-            while (rs.next()) {
-                modelo.addRow(new Object[]{
-                    rs.getLong("numero_identificacion"),
-                    rs.getString("nombre_completo"),
-                    rs.getString("email"),
-                    rs.getString("telefono"),
-                    rs.getString("nombre_empresa"),
-                    rs.getString("tipo_empresa"),
-                    rs.getString("cargo"),
-                    rs.getString("dependencia"),
-                    rs.getDate("fecha_ingreso"),
-                    rs.getDate("fecha_retiro")
-                });
+        try (Connection con = new BaseDatos().getConexion()) {
+            if (con == null) return; // BaseDatos ya mostró el error de conexión
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setLong(1, identificacion);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        modelo.addRow(new Object[]{
+                            rs.getLong("numero_identificacion"),
+                            rs.getString("nombre_completo"),
+                            rs.getString("email"),
+                            rs.getString("telefono"),
+                            rs.getString("nombre_empresa"),
+                            rs.getString("tipo_empresa"),
+                            rs.getString("cargo"),
+                            rs.getString("dependencia"),
+                            rs.getDate("fecha_ingreso"),
+                            rs.getDate("fecha_retiro")
+                        });
+                    }
+                }
             }
-
-            con.close();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -143,7 +146,7 @@ public class VentanaConsultaExperiencia extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new VentanaConsultaExperiencia().setVisible(true);
+                new VentanaConsultaExperiencia(0L).setVisible(true);
             }
         });
     }

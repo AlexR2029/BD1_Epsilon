@@ -21,6 +21,7 @@ private long numeroIdentificacionCandidato;
     public FormularioIdioma(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         // Llenar los ComboBox de niveles con las opciones R, B, MB
@@ -69,23 +70,19 @@ private long numeroIdentificacionCandidato;
             // Crear objeto del modelo del equipo
             Idioma idioma = new Idioma(nombreIdioma, habla, lectura, escritura);
 
-            // Conexión y centencia SQL para IDIOMAS_CANDIDATOS
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-            if (conexion == null) {
-                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
-            }
+            // Conexión y sentencia SQL para IDIOMAS_CANDIDATOS
+            try (Connection conexion = new BaseDatos().getConexion()) {
+                if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
 
-            String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-            pst.setLong(1, numeroIdentificacionCandidato);
-            pst.setString(2, idioma.getNombreIdioma());
-            pst.setString(3, idioma.getHabla().name());
-            pst.setString(4, idioma.getLectura().name());
-            pst.setString(5, idioma.getEscritura().name());
-
-            pst.executeUpdate();
-            conexion.close();
+                String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sql)) {
+                    pst.setLong(1, numeroIdentificacionCandidato);
+                    pst.setString(2, idioma.getNombreIdioma());
+                    pst.setString(3, idioma.getHabla().name());
+                    pst.setString(4, idioma.getLectura().name());
+                    pst.setString(5, idioma.getEscritura().name());
+                    pst.executeUpdate();
+                }
             }
             return true;
 
@@ -236,7 +233,7 @@ private long numeroIdentificacionCandidato;
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         if (!jTextField1.getText().trim().isEmpty()) {
             if (registrarIdiomaBD()) {
-                JOptionPane.showMessageDialog(this, "¡Proceso de registro de idioma realizado con éxito!");
+                // sin alerta de éxito: la siguiente ventana se abre directamente
                 this.dispose();
                 new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
             }

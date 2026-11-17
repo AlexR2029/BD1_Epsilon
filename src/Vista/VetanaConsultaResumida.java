@@ -22,6 +22,7 @@ public class VetanaConsultaResumida extends javax.swing.JFrame {
 
     public VetanaConsultaResumida() {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         cargarDatosResumidos();
     }

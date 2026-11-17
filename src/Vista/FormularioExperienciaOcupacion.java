@@ -17,6 +17,7 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
     public FormularioExperienciaOcupacion(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
     }
 
