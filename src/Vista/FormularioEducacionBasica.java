@@ -30,7 +30,8 @@ private long numeroIdentificacionCandidato;
     }
 
 private void guardarEducacionBasica() {
-    try {
+    try (Connection conexion = new BaseDatos().getConexion()) {
+        if (conexion == null) return; // BaseDatos ya mostró el error de conexión
         int gradoAprobado = Integer.parseInt(jComboBox1.getSelectedItem().toString());
         
         String titulo = jTextField3.getText().trim();
@@ -42,9 +43,6 @@ private void guardarEducacionBasica() {
         Integer anioGrado = jTextField2.getText().trim().isEmpty() ? null : Integer.parseInt(jTextField2.getText().trim());
         
         EducacionBasica educacionBasica = new EducacionBasica(titulo, mesGrado, anioGrado, gradoAprobado);
-
-        BaseDatos bd = new BaseDatos();
-        Connection conexion = bd.getConexion();
 
         String sql = "INSERT INTO EDUCACION_BASICA_CANDIDATOS (numero_identificacion_candidato, ultimo_grado_aprobado, titulo_obtenido, mes_grado, anio_grado) VALUES (?, ?, ?, ?, ?)";
         PreparedStatement pst = conexion.prepareStatement(sql);
@@ -71,7 +69,6 @@ private void guardarEducacionBasica() {
         
         pst.executeUpdate();
 
-            conexion.close();
             JOptionPane.showMessageDialog(this, "¡Educación básica registrada con éxito!");
             
             this.dispose();

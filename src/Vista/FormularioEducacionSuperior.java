@@ -39,7 +39,8 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
     }
 
     private boolean registrarEstudio() {
-        try {
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
             String titulo = jTextField1.getText().trim();
             if (titulo.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "El nombre del título es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -67,9 +68,6 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
             String tarjetaProfesional = tarjetaStr.isEmpty() ? null : tarjetaStr;
 
             EducacionSuperior eduSup = new EducacionSuperior(titulo, mes, anio, modalidad, semestres, graduado, tarjetaProfesional);
-
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
 
             String sql = "INSERT INTO EDUCACION_SUPERIOR_CANDIDATOS (numero_identificacion_candidato, titulo_obtenido, numero_tarjeta_profesional, modalidad_academica, semestres_aprobados, graduado, mes_terminacion, anio_terminacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pst = conexion.prepareStatement(sql);
@@ -99,7 +97,6 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
             }
 
             pst.executeUpdate();
-            conexion.close();
             return true;
 
         } catch (NumberFormatException nfe) {

@@ -21,7 +21,8 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
     }
 
     private boolean registrarOcupacion() {
-        try {
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
             String ocupacion = jTextField1.getText().trim();
             if (ocupacion.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "El campo de ocupación es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -40,9 +41,6 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
             byte anios = Byte.parseByte(aniosStr); 
             byte meses = Byte.parseByte(mesesStr); 
 
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-
             String sql = "INSERT INTO EXPERIENCIAS_OCUPACIONES_CANDIDATOS (numero_identificacion_candidato, ocupacion, anio_experiencia, meses_experiencia) VALUES (?, ?, ?, ?)";
             PreparedStatement pst = conexion.prepareStatement(sql);
             pst.setLong(1, numeroIdentificacionCandidato);
@@ -51,7 +49,6 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
             pst.setByte(4, meses);
 
             pst.executeUpdate();
-            conexion.close();
             return true;
 
         } catch (NumberFormatException nfe) {

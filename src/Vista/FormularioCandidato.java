@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.BaseDatos;
+import BaseDatos.MunicipioDAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
@@ -39,91 +40,97 @@ public class FormularioCandidato extends javax.swing.JFrame {
     }
 
     public void guardarTodoElFormulario() {
-    try {
-        String numIdentificacion = jTextField4.getText().trim();
-        String tipoDoc = jComboBox1.getSelectedItem().toString(); 
-        String nombres = jTextField3.getText().trim();
-        String primerApellido = jTextField1.getText().trim();
-        String segundoApellido = jTextField2.getText().trim();
-        
-        String sexo = jRadioButton1.isSelected() ? "M" : "F";
-
-        String nacionalidad = jRadioButton3.isSelected() ? "COLOMBIA" : "EXTRANJERO";
-
-        int anio = Integer.parseInt(jTextField8.getText().trim());
-        int mes = Integer.parseInt(jTextField7.getText().trim());
-        int dia = Integer.parseInt(jTextField6.getText().trim());
-        LocalDate fechaNac = LocalDate.of(anio, mes, dia);
-
-        String paisNac = jTextField9.getText().trim();
-        String deptoNac = jTextField10.getText().trim();
-        String munNac = jTextField11.getText().trim();
-
-        String direccion = jTextField12.getText().trim();
-        String paisDom = jTextField13.getText().trim();
-        String deptoDom = jTextField14.getText().trim();
-        String munDom = jTextField15.getText().trim();
-        String telefono = jTextField16.getText().trim();
-        String email = jTextField17.getText().trim();
-
-        String numLibretaStr = jTextField18.getText().trim();
-        String distritoMil = jTextField19.getText().trim();
-        String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
-
         BaseDatos bd = new BaseDatos();
-        Connection conexion = bd.getConexion();
+        try (Connection conexion = bd.getConexion()) {
+            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
 
-        String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, pais_nacimiento, departamento_nacimiento, municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        PreparedStatement pst1 = conexion.prepareStatement(sqlCandidato);
-        pst1.setLong(1, Long.parseLong(numIdentificacion));
-        pst1.setString(2, tipoDoc);
-        pst1.setString(3, nombres);
-        pst1.setString(4, primerApellido);
-        pst1.setString(5, segundoApellido.isEmpty() ? null : segundoApellido);
-        pst1.setString(6, sexo);
-        pst1.setString(7, nacionalidad);
-        pst1.setString(8, telefono);
-        pst1.setString(9, email);
-        pst1.setBoolean(10, true); 
-        pst1.setObject(11, fechaNac);
-        pst1.setString(12, paisNac);
-        pst1.setString(13, deptoNac);
-        pst1.setString(14, munNac);
-        pst1.executeUpdate();
+            String numIdentificacion = jTextField4.getText().trim();
+            String tipoDoc = jComboBox1.getSelectedItem().toString();
+            String nombres = jTextField3.getText().trim();
+            String primerApellido = jTextField1.getText().trim();
+            String segundoApellido = jTextField2.getText().trim();
+            String sexo = jRadioButton1.isSelected() ? "M" : "F";
+            String nacionalidad = jRadioButton3.isSelected() ? "COLOMBIA" : "EXTRANJERO";
 
-        String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, pais, departamento, municipio) VALUES (?, ?, ?, ?, ?)";
-        PreparedStatement pst2 = conexion.prepareStatement(sqlDomicilio);
-        pst2.setLong(1, Long.parseLong(numIdentificacion));
-        pst2.setString(2, direccion);
-        pst2.setString(3, paisDom);
-        pst2.setString(4, deptoDom);
-        pst2.setString(5, munDom);
-        pst2.executeUpdate();
+            LocalDate fechaNac = LocalDate.of(
+                    Integer.parseInt(jTextField8.getText().trim()),
+                    Integer.parseInt(jTextField7.getText().trim()),
+                    Integer.parseInt(jTextField6.getText().trim()));
 
-        if (!numLibretaStr.isEmpty() && claseLibreta != null) {
-            String sqlLibreta = "INSERT INTO LIBRETAS_MILITARES (numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)";
-            PreparedStatement pst3 = conexion.prepareStatement(sqlLibreta);
-            pst3.setLong(1, Long.parseLong(numLibretaStr));
-            pst3.setString(2, claseLibreta);
-            pst3.setString(3, distritoMil);
-            pst3.setLong(4, Long.parseLong(numIdentificacion));
-            pst3.executeUpdate();
+            String paisNac = jTextField9.getText().trim();
+            String deptoNac = jTextField10.getText().trim();
+            String munNac = jTextField11.getText().trim();
+
+            String direccion = jTextField12.getText().trim();
+            String paisDom = jTextField13.getText().trim();
+            String deptoDom = jTextField14.getText().trim();
+            String munDom = jTextField15.getText().trim();
+            String telefono = jTextField16.getText().trim();
+            String email = jTextField17.getText().trim();
+
+            String numLibretaStr = jTextField18.getText().trim();
+            String distritoMil = jTextField19.getText().trim();
+            String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
+
+            conexion.setAutoCommit(false);
+            try {
+                MunicipioDAO municipios = new MunicipioDAO(conexion);
+                int idMunNac = SelectorMunicipio.resolver(this, municipios, munNac, deptoNac, paisNac);
+                int idMunDom = SelectorMunicipio.resolver(this, municipios, munDom, deptoDom, paisDom);
+
+                String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, id_municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sqlCandidato)) {
+                    pst.setLong(1, Long.parseLong(numIdentificacion));
+                    pst.setString(2, tipoDoc);
+                    pst.setString(3, nombres);
+                    pst.setString(4, primerApellido);
+                    pst.setString(5, segundoApellido.isEmpty() ? null : segundoApellido);
+                    pst.setString(6, sexo);
+                    pst.setString(7, nacionalidad);
+                    pst.setString(8, telefono);
+                    pst.setString(9, email);
+                    pst.setBoolean(10, true);
+                    pst.setObject(11, fechaNac);
+                    pst.setInt(12, idMunNac);
+                    pst.executeUpdate();
+                }
+
+                String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, id_municipio) VALUES (?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sqlDomicilio)) {
+                    pst.setLong(1, Long.parseLong(numIdentificacion));
+                    pst.setString(2, direccion);
+                    pst.setInt(3, idMunDom);
+                    pst.executeUpdate();
+                }
+
+                if (!numLibretaStr.isEmpty() && claseLibreta != null) {
+                    String sqlLibreta = "INSERT INTO LIBRETAS_MILITARES (numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)";
+                    try (PreparedStatement pst = conexion.prepareStatement(sqlLibreta)) {
+                        pst.setLong(1, Long.parseLong(numLibretaStr));
+                        pst.setString(2, claseLibreta);
+                        pst.setString(3, distritoMil);
+                        pst.setLong(4, Long.parseLong(numIdentificacion));
+                        pst.executeUpdate();
+                    }
+                }
+
+                conexion.commit();
+            } catch (Exception e) {
+                conexion.rollback();
+                throw e;
+            }
+
+            JOptionPane.showMessageDialog(this, "¡Candidato registrado con éxito en la base de datos del equipo!");
+            this.dispose();
+            new FormularioEducacionBasica(Long.parseLong(numIdentificacion)).setVisible(true);
+
+        } catch (NumberFormatException nfe) {
+            JOptionPane.showMessageDialog(this, "Por favor, verifica que los campos numéricos (Identificación, Teléfono, Fechas) contengan solo números.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error de Base de Datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-
-        conexion.close();
-        JOptionPane.showMessageDialog(this, "¡Candidato registrado con éxito en la base de datos del equipo!");
-        this.dispose();
-        
-        long idCandidato = Long.parseLong(jTextField4.getText().trim());
-        this.dispose();
-        new FormularioEducacionBasica(idCandidato).setVisible(true);
-        
-    } catch (NumberFormatException nfe) {
-        JOptionPane.showMessageDialog(this, "Por favor, verifica que los campos numéricos (Identificación, Teléfono, Fechas) contengan solo números.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
-    } catch (Exception e) {
-        JOptionPane.showMessageDialog(this, "Error de Base de Datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
-}
+
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
