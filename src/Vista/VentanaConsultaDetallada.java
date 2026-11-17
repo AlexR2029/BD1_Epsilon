@@ -43,12 +43,14 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
             BaseDatos bd = new BaseDatos();
             Connection con = bd.getConexion();
             Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT numero_identificacion_candidato, nombres, apellidos FROM CANDIDATOS");
+            ResultSet rs = st.executeQuery("SELECT numero_identificacion, nombre, "
+                    + "CONCAT(primer_apellido, ' ', IFNULL(segundo_apellido, '')) AS apellidos "
+                    + "FROM CANDIDATOS ORDER BY primer_apellido, nombre");
 
             while (rs.next()) {
                 Object[] fila = new Object[3];
                 fila[0] = rs.getLong(1);
-                fila[1] = rs.getString(2);
+                fila[1] = rs.getString("nombre");
                 fila[2] = rs.getString(3);
                 modelo.addRow(fila);
             }
@@ -65,14 +67,16 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
             BaseDatos bd = new BaseDatos();
             Connection con = bd.getConexion();
 
-            PreparedStatement pst1 = con.prepareStatement("SELECT * FROM CANDIDATOS WHERE numero_identificacion_candidato = ?");
+            PreparedStatement pst1 = con.prepareStatement("SELECT * FROM CANDIDATOS WHERE numero_identificacion = ?");
             pst1.setLong(1, idCandidato);
             ResultSet rs1 = pst1.executeQuery();
             if (rs1.next()) {
                 sb.append("=== HOJA DE VIDA DETALLADA ===\n");
-                sb.append("Cédula: ").append(rs1.getLong("numero_identificacion_candidato")).append("\n");
-                sb.append("Nombre Completo: ").append(rs1.getString("nombres")).append(" ").append(rs1.getString("apellidos")).append("\n");
-                sb.append("Correo: ").append(rs1.getString("correo_electronico")).append("\n");
+                sb.append("Cédula: ").append(rs1.getLong("numero_identificacion")).append("\n");
+                sb.append("Nombre Completo: ").append(rs1.getString("nombre")).append(" ")
+                        .append(rs1.getString("primer_apellido")).append(" ")
+                        .append(rs1.getString("segundo_apellido")).append("\n");
+                sb.append("Correo: ").append(rs1.getString("email")).append("\n");
                 sb.append("Teléfono: ").append(rs1.getString("telefono")).append("\n\n");
             }
 
@@ -81,9 +85,9 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
             ResultSet rs2 = pst2.executeQuery();
             sb.append("--- EDUCACIÓN BÁSICA ---\n");
             while (rs2.next()) {
-                sb.append("• Grado: ").append(rs2.getInt("grado_aprobado"))
+                sb.append("• Grado: ").append(rs2.getInt("ultimo_grado_aprobado"))
                   .append(" | Título: ").append(rs2.getString("titulo_obtenido"))
-                  .append(" (Terminación: ").append(rs2.getInt("mes_terminacion")).append("/").append(rs2.getInt("anio_terminacion")).append(")\n");
+                  .append(" (Terminación: ").append(rs2.getInt("mes_grado")).append("/").append(rs2.getInt("anio_grado")).append(")\n");
             }
             sb.append("\n");
 

@@ -4,6 +4,11 @@
  */
 package Vista;
 
+import BaseDatos.BaseDatos;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author sonic
@@ -15,6 +20,63 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
      */
     public FormularioRegistroRRHH() {
         initComponents();
+        jTextField5.addActionListener(e -> registrarVerificador());
+    }
+
+    private void registrarVerificador() {
+        String identificacion = jTextField1.getText().trim();
+        String nombreCompleto = jTextField2.getText().trim();
+        String correo = jTextField3.getText().trim();
+        String usuario = jTextField4.getText().trim();
+        String contrasena = jTextField5.getText().trim();
+
+        if (identificacion.isEmpty() || nombreCompleto.isEmpty() || correo.isEmpty()
+                || usuario.isEmpty() || contrasena.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Complete todos los campos del verificador.",
+                    "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String[] nombres = nombreCompleto.split("\\s+", 2);
+        String nombre = nombres[0];
+        String apellido = nombres.length > 1 ? nombres[1] : "";
+        if (apellido.isEmpty() || !correo.contains("@")) {
+            JOptionPane.showMessageDialog(this, "Ingrese nombre y apellido, y un correo válido.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String sql = "INSERT INTO VERIFICADORES (identificacion, nombres, apellidos, email, telefono) "
+                + "VALUES (?, ?, ?, ?, ?)";
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) {
+                return;
+            }
+            try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
+                sentencia.setLong(1, Long.parseLong(identificacion));
+                sentencia.setString(2, nombre);
+                sentencia.setString(3, apellido);
+                sentencia.setString(4, correo);
+                sentencia.setString(5, usuario);
+                sentencia.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Verificador registrado correctamente.");
+            limpiarCampos();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "La identificación debe ser numérica.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "No fue posible registrar el verificador: "
+                    + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void limpiarCampos() {
+        jTextField1.setText("");
+        jTextField2.setText("");
+        jTextField3.setText("");
+        jTextField4.setText("");
+        jTextField5.setText("");
+        jTextField1.requestFocus();
     }
 
     /**
@@ -36,6 +98,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         jTextField4 = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
         jTextField5 = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -54,29 +117,41 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         jLabel5.setFont(new java.awt.Font("Dialog", 0, 12)); // NOI18N
         jLabel5.setText("Contraseña");
 
+        jButton1.setText("Continuar");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jTextField5)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(jTextField4)
+                            .addComponent(jTextField5)
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                    .addComponent(jTextField3)
+                                    .addComponent(jTextField4)
                                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                            .addComponent(jLabel1)
-                                            .addComponent(jLabel2)
-                                            .addComponent(jTextField1, javax.swing.GroupLayout.DEFAULT_SIZE, 270, Short.MAX_VALUE)
-                                            .addComponent(jTextField2))
-                                        .addComponent(jLabel3)))
-                                .addComponent(jLabel4)))
-                        .addComponent(jLabel5)))
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                            .addComponent(jTextField3)
+                                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                                    .addComponent(jLabel1)
+                                                    .addComponent(jLabel2)
+                                                    .addComponent(jTextField1, javax.swing.GroupLayout.DEFAULT_SIZE, 270, Short.MAX_VALUE)
+                                                    .addComponent(jTextField2))
+                                                .addComponent(jLabel3)))
+                                        .addComponent(jLabel4)))
+                                .addComponent(jLabel5))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(103, 103, 103)
+                        .addComponent(jButton1)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -102,11 +177,17 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
                 .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(jButton1)
+                .addContainerGap(27, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        registrarVerificador();
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -144,6 +225,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

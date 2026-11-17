@@ -4,6 +4,9 @@
  */
 package Vista;
 
+import BaseDatos.HojaVidaDAO;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author sonic
@@ -15,6 +18,10 @@ public class MenúOpciones extends javax.swing.JFrame {
      */
     public MenúOpciones() {
         initComponents();
+        jButton4.addActionListener(e -> abrirHojaVida());
+        jButton5.addActionListener(e -> abrirVerificacion());
+        jButton8.addActionListener(e -> new VentanaConsultaFormacion().setVisible(true));
+        jButton9.addActionListener(e -> new VentanaConsultaExperiencia().setVisible(true));
     }
 
     /**
@@ -137,11 +144,11 @@ public class MenúOpciones extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton7ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-
+        new FormularioMunicipio().setVisible(true);
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jToggleButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton1ActionPerformed
-        new FormularioRegistroEmpresa().setVisible(true);
+        new FormularioEmpresa().setVisible(true);
     }//GEN-LAST:event_jToggleButton1ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
@@ -151,6 +158,41 @@ public class MenúOpciones extends javax.swing.JFrame {
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         new VetanaConsultaResumida().setVisible(true);
     }//GEN-LAST:event_jButton6ActionPerformed
+
+    private void abrirHojaVida() {
+        new FormularioCandidato().setVisible(true);
+    }
+
+    private void abrirVerificacion() {
+        String candidato = JOptionPane.showInputDialog(this,
+                "Identificación del candidato:", "Registrar verificación",
+                JOptionPane.QUESTION_MESSAGE);
+        String verificador = JOptionPane.showInputDialog(this,
+                "Identificación del verificador:", "Registrar verificación",
+                JOptionPane.QUESTION_MESSAGE);
+        String[] opciones = {"Aprobada", "No aprobada"};
+        int resultado = JOptionPane.showOptionDialog(this, "Resultado de la verificación:",
+                "Registrar verificación", JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+        String observaciones = JOptionPane.showInputDialog(this,
+                "Observaciones (opcional):", "Registrar verificación",
+                JOptionPane.QUESTION_MESSAGE);
+        if (candidato == null || verificador == null || resultado == JOptionPane.CLOSED_OPTION) {
+            return;
+        }
+        try {
+            new HojaVidaDAO().registrarVerificacion(Long.parseLong(candidato.trim()),
+                    Long.parseLong(verificador.trim()), resultado == 0,
+                    observaciones == null ? "" : observaciones.trim());
+            JOptionPane.showMessageDialog(this, "Verificación registrada correctamente.");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Las identificaciones deben ser numéricas.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "No fue posible registrar la verificación: "
+                    + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     /**
      * @param args the command line arguments

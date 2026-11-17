@@ -38,14 +38,16 @@ public class VetanaConsultaResumida extends javax.swing.JFrame {
             BaseDatos bd = new BaseDatos();
             Connection con = bd.getConexion();
             Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM CANDIDATOS");
+            ResultSet rs = st.executeQuery("SELECT numero_identificacion, nombre, "
+                    + "CONCAT(primer_apellido, ' ', IFNULL(segundo_apellido, '')) AS apellidos, "
+                    + "email, telefono FROM CANDIDATOS ORDER BY primer_apellido, nombre");
 
             while (rs.next()) {
                 Object[] fila = new Object[5];
-                fila[0] = rs.getLong("numero_identificacion_candidato");
-                fila[1] = rs.getString("nombres");
+                fila[0] = rs.getLong("numero_identificacion");
+                fila[1] = rs.getString("nombre");
                 fila[2] = rs.getString("apellidos");
-                fila[3] = rs.getString("correo_electronico");
+                fila[3] = rs.getString("email");
                 fila[4] = rs.getString("telefono");
                 modelo.addRow(fila);
             }

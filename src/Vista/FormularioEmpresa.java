@@ -127,16 +127,19 @@ public class FormularioEmpresa extends JFrame {
             return;
         }
 
-        String sql = "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO EMPRESAS (nombre, tipo_empresa, pais, departamento, municipio, "
+                + "email_empresa, telefono, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conexion = new BaseDatos().getConexion()) {
             if (conexion == null) return; // BaseDatos ya mostró el error de conexión
             try (PreparedStatement pst = conexion.prepareStatement(sql)) {
                 pst.setString(1, nombre);
                 pst.setString(2, cbTipo.getSelectedItem().toString());
-                pst.setString(3, email);
-                pst.setString(4, telefono);
-                pst.setString(5, direccion);
-                pst.setInt(6, municipio.id());
+                pst.setString(3, municipio.pais());
+                pst.setString(4, municipio.departamento());
+                pst.setString(5, municipio.nombre());
+                pst.setString(6, email);
+                pst.setString(7, telefono);
+                pst.setString(8, direccion);
                 pst.executeUpdate();
             }
             JOptionPane.showMessageDialog(this, "Empresa registrada.");
