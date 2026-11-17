@@ -1,4 +1,29 @@
-# Proyecto Hoja de Vida - Fase 1: Estructuración Arquitectónica del Dominio (Patrón Modelo-Vista)
+# Proyecto Hoja de Vida - Persistencia SQL
+
+## Funcionalidades SQL
+
+La persistencia se encuentra en `src/BaseDatos/HojaVidaDAO.java`. Incluye el
+registro de documentos, municipios, empresas, verificadores, hojas de vida
+completas y verificaciones, además de consultas resumidas, detalladas, de
+formación académica y de experiencia laboral. El método
+`registrarHojaVidaCompleta` usa una transacción para evitar hojas de vida
+parcialmente registradas.
+
+Antes de ejecutar la aplicación, ejecutar `sql/hoja_vida.sql` en MySQL y
+configurar usuario y contraseña en `src/BaseDatos/BaseDatos.java`. Los
+formularios existentes pueden seguir utilizándose; no se modificó ningún
+`initComponents()`.
+
+La conexión acepta `MYSQL_USER` y `MYSQL_PASSWORD` como variables de entorno,
+o las propiedades Java `-Dmysql.user` y `-Dmysql.password`. Si no se
+configuran, el usuario predeterminado es `root` y la contraseña queda vacía.
+
+## Abrir en NetBeans
+
+La carpeta es un proyecto Java Ant de NetBeans. En NetBeans seleccione
+**File > Open Project** y elija directamente la carpeta `Epsilon` (no la
+carpeta `src`). Si el proyecto ya estaba abierto, cierre NetBeans y vuelva a
+abrirlo para que lea `nbproject/project.xml`.
 
 ## 📌 Descripción del Proyecto
 Este proyecto implementa el sistema de gestión del **Formato Único de Hoja de Vida de Persona Natural** (Gobierno de Colombia) bajo el paradigma de **Programación Orientada a Objetos (POO)** en Java. Siguiendo las directrices académicas y los lineamientos de la asignatura, el sistema se estructura estrictamente bajo el **Patrón Modelo-Vista** utilizando almacenamiento en memoria con colecciones dinámicas (`ArrayList`) y persistencia en archivos de objetos (`Serializable`).

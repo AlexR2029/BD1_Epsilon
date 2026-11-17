@@ -36,38 +36,39 @@ private void guardarEducacionBasica() {
         
         String titulo = jTextField3.getText().trim();
         if (titulo.isEmpty()) {
-            titulo = null; 
+            JOptionPane.showMessageDialog(this, "El nombre del título es obligatorio.",
+                    "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            jTextField3.requestFocus();
+            return;
         }
         
-        Integer mesGrado = jTextField1.getText().trim().isEmpty() ? null : Integer.parseInt(jTextField1.getText().trim());
-        Integer anioGrado = jTextField2.getText().trim().isEmpty() ? null : Integer.parseInt(jTextField2.getText().trim());
+        if (jTextField1.getText().trim().isEmpty() || jTextField2.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Complete el mes y el año de grado.",
+                    "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Integer mesGrado = Integer.parseInt(jTextField1.getText().trim());
+        Integer anioGrado = Integer.parseInt(jTextField2.getText().trim());
         
         EducacionBasica educacionBasica = new EducacionBasica(titulo, mesGrado, anioGrado, gradoAprobado);
 
+        BaseDatos bd = new BaseDatos();
+        Connection conexion = bd.getConexion();
+        if (conexion == null) {
+            throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
+        }
+
         String sql = "INSERT INTO EDUCACION_BASICA_CANDIDATOS (numero_identificacion_candidato, ultimo_grado_aprobado, titulo_obtenido, mes_grado, anio_grado) VALUES (?, ?, ?, ?, ?)";
-        PreparedStatement pst = conexion.prepareStatement(sql);
+        try (PreparedStatement pst = conexion.prepareStatement(sql)) {
         pst.setLong(1, numeroIdentificacionCandidato);
         pst.setInt(2, educacionBasica.getUltimoGradoAprobado());
         
-        if (educacionBasica.getTituloObtenido() != null) {
-            pst.setString(3, educacionBasica.getTituloObtenido());
-        } else {
-            pst.setNull(3, java.sql.Types.VARCHAR);
-        }
-        
-        if (educacionBasica.getMesTerminacion() != null) {
-            pst.setInt(4, educacionBasica.getMesTerminacion());
-        } else {
-            pst.setNull(4, java.sql.Types.TINYINT);
-        }
-        
-        if (educacionBasica.getAnioTerminacion() != null) {
-            pst.setInt(5, educacionBasica.getAnioTerminacion());
-        } else {
-            pst.setNull(5, java.sql.Types.SMALLINT);
-        }
+        pst.setString(3, educacionBasica.getTituloObtenido());
+        pst.setInt(4, educacionBasica.getMesTerminacion());
+        pst.setInt(5, educacionBasica.getAnioTerminacion());
         
         pst.executeUpdate();
+        }
 
             JOptionPane.showMessageDialog(this, "¡Educación básica registrada con éxito!");
             
