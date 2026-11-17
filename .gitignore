@@ -14,3 +14,9 @@ dist/
 # Reportes de pruebas (locales)
 
 docs/pruebas/
+
+# Configuración local de Claude Code
+
+CLAUDE.md
+
+.claude/
