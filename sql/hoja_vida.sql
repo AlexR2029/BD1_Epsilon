@@ -172,6 +172,49 @@ BEGIN
       ON d.numero_identificacion_candidato = c.numero_identificacion
     WHERE c.numero_identificacion = p_identificacion;
 END//
+
+DROP PROCEDURE IF EXISTS sp_registrar_municipio//
+CREATE PROCEDURE sp_registrar_municipio(
+    IN p_nombre VARCHAR(100),
+    IN p_departamento VARCHAR(100),
+    IN p_pais VARCHAR(100),
+    OUT p_id INT
+)
+BEGIN
+    INSERT INTO MUNICIPIOS (nombre, departamento, pais)
+    VALUES (TRIM(p_nombre), TRIM(p_departamento), TRIM(p_pais))
+    ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);
+    SET p_id = LAST_INSERT_ID();
+END//
+
+DROP PROCEDURE IF EXISTS sp_hoja_vida_formacion//
+CREATE PROCEDURE sp_hoja_vida_formacion(IN p_identificacion BIGINT)
+BEGIN
+    SELECT c.numero_identificacion, c.nombre, c.primer_apellido, c.segundo_apellido,
+           eb.ultimo_grado_aprobado, eb.titulo_obtenido AS titulo_basico,
+           eb.mes_grado, eb.anio_grado, es.titulo_obtenido AS titulo_superior,
+           es.modalidad_academica, es.semestres_aprobados, es.graduado,
+           es.mes_terminacion, es.anio_terminacion
+    FROM CANDIDATOS c
+    LEFT JOIN EDUCACION_BASICA_CANDIDATOS eb
+      ON eb.numero_identificacion_candidato = c.numero_identificacion
+    LEFT JOIN EDUCACION_SUPERIOR_CANDIDATOS es
+      ON es.numero_identificacion_candidato = c.numero_identificacion
+    WHERE c.numero_identificacion = p_identificacion;
+END//
+
+DROP PROCEDURE IF EXISTS sp_hoja_vida_experiencia//
+CREATE PROCEDURE sp_hoja_vida_experiencia(IN p_identificacion BIGINT)
+BEGIN
+    SELECT c.numero_identificacion, c.nombre, c.primer_apellido,
+           c.segundo_apellido, e.nombre_empresa, e.tipo_empresa,
+           ec.cargo, ec.dependencia, ec.fecha_ingreso, ec.fecha_retiro
+    FROM CANDIDATOS c
+    LEFT JOIN EMPLEOS_CANDIDATOS ec
+      ON ec.numero_identificacion_candidato = c.numero_identificacion
+    LEFT JOIN EMPRESAS e ON e.nombre = ec.nombre_empresa
+    WHERE c.numero_identificacion = p_identificacion;
+END//
 DELIMITER ;
 
 INSERT IGNORE INTO TIPOS_DOCUMENTO (codigo, nombre) VALUES

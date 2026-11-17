@@ -1,4 +1,4 @@
-USE if0_43338979_entrevista_db;
+USE hoja_vida;
 
 DROP PROCEDURE IF EXISTS sp_registrar_municipio;
 DELIMITER $$
@@ -12,7 +12,7 @@ BEGIN
   -- Si ya existe (la collation ci ignora mayúsculas), devuelve su id sin duplicar
   INSERT INTO municipios (nombre, departamento, pais)
   VALUES (TRIM(p_nombre), TRIM(p_departamento), TRIM(p_pais))
-  ON DUPLICATE KEY UPDATE id_municipio = LAST_INSERT_ID(id_municipio);
+  ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);
 
   SET p_id = LAST_INSERT_ID();
 END$$
