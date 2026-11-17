@@ -40,6 +40,19 @@ public class MunicipioDAO {
         return parecidos;
     }
 
+    /** Todos los municipios, ordenados por nombre (para llenar combos). */
+    public List<Municipio> listar() throws SQLException {
+        List<Municipio> lista = new ArrayList<>();
+        try (PreparedStatement st = con.prepareStatement(
+                "SELECT id_municipio, nombre, departamento, pais FROM municipios ORDER BY nombre, departamento");
+             ResultSet rs = st.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new Municipio(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+            }
+        }
+        return lista;
+    }
+
     /** Devuelve el id del municipio, creándolo si no existe (llama a sp_registrar_municipio). */
     public int registrar(String nombre, String departamento, String pais) throws SQLException {
         try (CallableStatement cs = con.prepareCall("{CALL sp_registrar_municipio(?, ?, ?, ?)}")) {
