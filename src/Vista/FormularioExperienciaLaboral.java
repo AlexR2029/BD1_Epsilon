@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.BaseDatos;
+import BaseDatos.MunicipioDAO;
 import Modelo.Empresa;
 import Modelo.ExperienciaLaboral;
 import Modelo.TipoEmpresa;
@@ -30,14 +31,15 @@ private long numeroIdentificacionCandidato;
     }
 
     private boolean registrarExperiencia() {
-        Connection conexion = null;
-        try {
-            String nombreEmpresa = jTextField1.getText().trim();
-            if (nombreEmpresa.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "El nombre de la empresa es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
-                jTextField1.requestFocus();
-                return false;
-            }
+        String nombreEmpresa = jTextField1.getText().trim();
+        if (nombreEmpresa.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El nombre de la empresa es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            jTextField1.requestFocus();
+            return false;
+        }
+
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
 
             TipoEmpresa tipoEmpresa = TipoEmpresa.valueOf(jComboBox1.getSelectedItem().toString());
             String pais = jTextField2.getText().trim();
@@ -561,7 +563,6 @@ private long numeroIdentificacionCandidato;
                 new FormularioExperienciaOcupacion(numeroIdentificacionCandidato).setVisible(true);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "¡Registro de experiencia con éxito!");
             this.dispose();
             new FormularioExperienciaOcupacion(numeroIdentificacionCandidato).setVisible(true);
         }

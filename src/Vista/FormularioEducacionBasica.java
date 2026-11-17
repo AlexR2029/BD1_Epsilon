@@ -30,7 +30,8 @@ private long numeroIdentificacionCandidato;
     }
 
 private void guardarEducacionBasica() {
-    try {
+    try (Connection conexion = new BaseDatos().getConexion()) {
+        if (conexion == null) return; // BaseDatos ya mostró el error de conexión
         int gradoAprobado = Integer.parseInt(jComboBox1.getSelectedItem().toString());
         
         String titulo = jTextField3.getText().trim();
@@ -69,7 +70,6 @@ private void guardarEducacionBasica() {
         pst.executeUpdate();
         }
 
-            conexion.close();
             JOptionPane.showMessageDialog(this, "¡Educación básica registrada con éxito!");
             
             this.dispose();
