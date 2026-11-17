@@ -42,27 +42,29 @@ private long numeroIdentificacionCandidato;
         LocalDate fechaIngreso;
         LocalDate fechaRetiro = null;
         try {
-            if (jTextField10.getText().trim().isEmpty() || jTextField11.getText().trim().isEmpty()
-                    || jTextField12.getText().trim().isEmpty()) {
+            if (jTextField7.getText().trim().isEmpty() || jTextField8.getText().trim().isEmpty()
+                    || jTextField9.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Complete la fecha de ingreso.",
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-            fechaIngreso = LocalDate.of(entero(jTextField12, "año de ingreso"),
-                    entero(jTextField11, "mes de ingreso"), entero(jTextField10, "día de ingreso"));
+            // Fecha de ingreso: día = 7, mes = 8, año = 9
+            fechaIngreso = LocalDate.of(entero(jTextField9, "año de ingreso"),
+                    entero(jTextField8, "mes de ingreso"), entero(jTextField7, "día de ingreso"));
 
-            boolean hayRetiro = !jTextField13.getText().trim().isEmpty() || !jTextField14.getText().trim().isEmpty()
-                    || !jTextField15.getText().trim().isEmpty();
-            boolean retiroCompleto = !jTextField13.getText().trim().isEmpty() && !jTextField14.getText().trim().isEmpty()
-                    && !jTextField15.getText().trim().isEmpty();
+            // Fecha de retiro: día = 10, mes = 11, año = 12
+            boolean hayRetiro = !jTextField10.getText().trim().isEmpty() || !jTextField11.getText().trim().isEmpty()
+                    || !jTextField12.getText().trim().isEmpty();
+            boolean retiroCompleto = !jTextField10.getText().trim().isEmpty() && !jTextField11.getText().trim().isEmpty()
+                    && !jTextField12.getText().trim().isEmpty();
             if (hayRetiro && !retiroCompleto) {
                 JOptionPane.showMessageDialog(this, "Complete día, mes y año de retiro, o deje los tres vacíos.",
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
             if (retiroCompleto) {
-                fechaRetiro = LocalDate.of(entero(jTextField15, "año de retiro"),
-                        entero(jTextField14, "mes de retiro"), entero(jTextField13, "día de retiro"));
+                fechaRetiro = LocalDate.of(entero(jTextField12, "año de retiro"),
+                        entero(jTextField11, "mes de retiro"), entero(jTextField10, "día de retiro"));
             }
             if (fechaRetiro != null && fechaRetiro.isBefore(fechaIngreso)) {
                 JOptionPane.showMessageDialog(this, "La fecha de retiro no puede ser anterior a la de ingreso.", "Fechas inválidas", JOptionPane.WARNING_MESSAGE);
@@ -86,7 +88,7 @@ private long numeroIdentificacionCandidato;
             String municipio = jTextField4.getText().trim();
             String email = jTextField5.getText().trim();
             String telefono = jTextField6.getText().trim();
-            String direccion = jTextField7.getText().trim();
+            String direccion = jTextField15.getText().trim(); // dirección = 15 según la pantalla
 
             if (pais.isEmpty() || departamento.isEmpty() || municipio.isEmpty()
                     || email.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
@@ -97,8 +99,9 @@ private long numeroIdentificacionCandidato;
 
             Empresa empresa = new Empresa(nombreEmpresa, tipoEmpresa, pais, departamento, municipio, email, telefono, direccion);
 
-            String cargo = jTextField8.getText().trim();
-            String dependencia = jTextField9.getText().trim();
+            // Campos según la pantalla: cargo = 13, dependencia = 14
+            String cargo = jTextField13.getText().trim();
+            String dependencia = jTextField14.getText().trim();
             if (cargo.isEmpty() || dependencia.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Complete cargo y dependencia.",
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
