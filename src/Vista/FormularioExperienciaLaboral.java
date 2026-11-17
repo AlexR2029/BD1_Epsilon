@@ -39,6 +39,44 @@ private long numeroIdentificacionCandidato;
             return false;
         }
 
+        LocalDate fechaIngreso;
+        LocalDate fechaRetiro = null;
+        try {
+            if (jTextField10.getText().trim().isEmpty() || jTextField11.getText().trim().isEmpty()
+                    || jTextField12.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Complete la fecha de ingreso.",
+                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            fechaIngreso = LocalDate.of(entero(jTextField12, "año de ingreso"),
+                    entero(jTextField11, "mes de ingreso"), entero(jTextField10, "día de ingreso"));
+
+            boolean hayRetiro = !jTextField13.getText().trim().isEmpty() || !jTextField14.getText().trim().isEmpty()
+                    || !jTextField15.getText().trim().isEmpty();
+            boolean retiroCompleto = !jTextField13.getText().trim().isEmpty() && !jTextField14.getText().trim().isEmpty()
+                    && !jTextField15.getText().trim().isEmpty();
+            if (hayRetiro && !retiroCompleto) {
+                JOptionPane.showMessageDialog(this, "Complete día, mes y año de retiro, o deje los tres vacíos.",
+                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            if (retiroCompleto) {
+                fechaRetiro = LocalDate.of(entero(jTextField15, "año de retiro"),
+                        entero(jTextField14, "mes de retiro"), entero(jTextField13, "día de retiro"));
+            }
+            if (fechaRetiro != null && fechaRetiro.isBefore(fechaIngreso)) {
+                JOptionPane.showMessageDialog(this, "La fecha de retiro no puede ser anterior a la de ingreso.", "Fechas inválidas", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        } catch (NumberFormatException nfe) {
+            nfe.printStackTrace();
+            JOptionPane.showMessageDialog(this, nfe.getMessage(), "Error de Formato", JOptionPane.WARNING_MESSAGE);
+            return false;
+        } catch (java.time.DateTimeException dte) {
+            JOptionPane.showMessageDialog(this, "La fecha no es válida: " + dte.getMessage(), "Fecha inválida", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
         try (Connection conexion = new BaseDatos().getConexion()) {
             if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
 
@@ -66,24 +104,15 @@ private long numeroIdentificacionCandidato;
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-
-            if (jTextField10.getText().trim().isEmpty() || jTextField11.getText().trim().isEmpty()
-                    || jTextField12.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Complete la fecha de ingreso.",
-                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            if (LimitesTexto.excede(this, "Empresa", nombreEmpresa, 20, "País", pais, 50,
+                    "Departamento", departamento, 50, "Municipio", municipio, 50, "Correo", email, 50,
+                    "Teléfono", telefono, 12, "Dirección", direccion, 30, "Cargo", cargo, 50,
+                    "Dependencia", dependencia, 20)) {
                 return false;
             }
-            int diaIng = Integer.parseInt(jTextField10.getText().trim());
-            int mesIng = Integer.parseInt(jTextField11.getText().trim());
-            int anioIng = Integer.parseInt(jTextField12.getText().trim());
-            LocalDate fechaIngreso = LocalDate.of(anioIng, mesIng, diaIng);
-
-            LocalDate fechaRetiro = null;
-            String dRet = jTextField13.getText().trim();
-            String mRet = jTextField14.getText().trim();
-            String aRet = jTextField15.getText().trim();
-            if (!dRet.isEmpty() && !mRet.isEmpty() && !aRet.isEmpty()) {
-                fechaRetiro = LocalDate.of(Integer.parseInt(aRet), Integer.parseInt(mRet), Integer.parseInt(dRet));
+            if (!email.contains("@")) {
+                JOptionPane.showMessageDialog(this, "El correo de la empresa no es válido.", "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+                return false;
             }
 
             ExperienciaLaboral experiencia = new ExperienciaLaboral(empresa, cargo, dependencia, fechaIngreso, fechaRetiro);
@@ -127,11 +156,22 @@ private long numeroIdentificacionCandidato;
             return true;
 
         } catch (NumberFormatException nfe) {
-            JOptionPane.showMessageDialog(this, "Por favor verifique que los campos numéricos (fechas) sean válidos.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+            nfe.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Dato numérico inválido: " + nfe.getMessage(), "Error de Formato", JOptionPane.WARNING_MESSAGE);
             return false;
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al guardar la experiencia laboral: " + e.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
             return false;
+        }
+    }
+
+    /** Lee un entero de un campo: ignora espacios (también el no separable) y caracteres invisibles. */
+    private static int entero(javax.swing.JTextField campo, String nombre) {
+        String texto = campo.getText().replaceAll("[\\p{Z}\\p{C}]", "");
+        try {
+            return Integer.parseInt(texto);
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("El campo " + nombre + " debe ser un número entero y tiene \"" + campo.getText() + "\".");
         }
     }
 

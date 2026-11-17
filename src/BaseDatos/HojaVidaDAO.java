@@ -94,12 +94,33 @@ public class HojaVidaDAO {
         }
     }
 
+    /** Guarda la verificación y deja candidatos.verificada igual a la última decisión, en una sola transacción. */
     public void registrarVerificacion(long identificacionCandidato, long identificacionVerificador,
             boolean aprobada, String observaciones) throws SQLException {
-        ejecutar("INSERT INTO VERIFICACIONES_HOJA_VIDA "
-                        + "(numero_identificacion_candidato, identificacion_verificador, aprobada, observaciones) "
-                        + "VALUES (?, ?, ?, ?)",
-                identificacionCandidato, identificacionVerificador, aprobada, observaciones);
+        try (Connection conexion = abrir()) {
+            conexion.setAutoCommit(false);
+            try {
+                ejecutar(conexion, "INSERT INTO VERIFICACIONES_HOJA_VIDA "
+                                + "(numero_identificacion_candidato, identificacion_verificador, aprobada, observaciones) "
+                                + "VALUES (?, ?, ?, ?)",
+                        identificacionCandidato, identificacionVerificador, aprobada, observaciones);
+                ejecutar(conexion, "UPDATE CANDIDATOS SET verificada = ? WHERE numero_identificacion = ?",
+                        aprobada, identificacionCandidato);
+                conexion.commit();
+            } catch (SQLException | RuntimeException ex) {
+                conexion.rollback();
+                throw ex;
+            }
+        }
+    }
+
+    /** Devuelve la fila (numero_identificacion y nombre_completo) si usuario y contraseña coinciden; si no, null. */
+    public Map<String, Object> autenticarPersonalRRHH(String usuario, String contrasena) throws SQLException {
+        // BINARY: la collation ignora mayúsculas; el usuario y la contraseña deben coincidir exactamente
+        List<Map<String, Object>> filas = consultar(
+                "SELECT numero_identificacion, nombre_completo FROM PERSONAL_RRHH "
+                        + "WHERE BINARY usuario = ? AND BINARY contraseña = ?", usuario, contrasena);
+        return filas.isEmpty() ? null : filas.get(0);
     }
 
     public boolean existeCandidato(long identificacion) throws SQLException {

@@ -23,6 +23,9 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
         initComponents();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
+        setTitle("Hojas de vida detalladas - seleccione una para ver el detalle");
+        jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        jTextArea1.setEditable(false);
         cargarCandidatos();
 
         jTable1.getSelectionModel().addListSelectionListener(e -> {
@@ -32,34 +35,59 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
                 cargarDetalleCompleto(idCandidato);
             }
         });
+        if (jTable1.getRowCount() > 0) {
+            jTable1.setRowSelectionInterval(0, 0); // muestra de una vez el detalle del primero
+        }
     }
 
     private void cargarCandidatos() {
-        DefaultTableModel modelo = new DefaultTableModel();
-        modelo.addColumn("Cédula");
-        modelo.addColumn("Nombres");
-        modelo.addColumn("Apellidos");
-
-        try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT numero_identificacion, nombre, "
-                    + "CONCAT(primer_apellido, ' ', IFNULL(segundo_apellido, '')) AS apellidos "
-                    + "FROM CANDIDATOS ORDER BY primer_apellido, nombre");
-
-            while (rs.next()) {
-                Object[] fila = new Object[3];
-                fila[0] = rs.getLong(1);
-                fila[1] = rs.getString("nombre");
-                fila[2] = rs.getString(3);
-                modelo.addRow(fila);
+        DefaultTableModel modelo = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int fila, int columna) {
+                return false;
             }
-            jTable1.setModel(modelo);
-            con.close();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar candidatos: " + e.getMessage());
+        };
+        for (String columna : new String[]{"Identificación", "Tipo", "Nombre completo", "Sexo", "Nacionalidad",
+                "Nacimiento", "Lugar de nacimiento", "Correo", "Teléfono", "Domicilio", "Libreta", "Verificada"}) {
+            modelo.addColumn(columna);
         }
+
+        String sql = "SELECT c.numero_identificacion, c.tipo_identificacion, "
+                + "CONCAT_WS(' ', c.nombre, c.primer_apellido, c.segundo_apellido) AS nombre_completo, "
+                + "c.sexo, c.nacionalidad, c.fecha_nacimiento, CONCAT(m.nombre, ' - ', m.departamento) AS lugar, "
+                + "c.email, c.telefono, CONCAT(d.direccion, ', ', md.nombre) AS domicilio, "
+                + "CONCAT(lm.numero, ' (', lm.clase, ')') AS libreta, c.verificada "
+                + "FROM candidatos c "
+                + "JOIN municipios m ON m.id_municipio = c.id_municipio_nacimiento "
+                + "LEFT JOIN domicilios_candidatos d ON d.numero_identificacion_candidato = c.numero_identificacion "
+                + "LEFT JOIN municipios md ON md.id_municipio = d.id_municipio "
+                + "LEFT JOIN libretas_militares lm ON lm.numero_identificacion_candidato = c.numero_identificacion "
+                + "ORDER BY c.primer_apellido, c.nombre";
+
+        try (Connection con = new BaseDatos().getConexion()) {
+            if (con == null) return; // BaseDatos ya mostró el error de conexión
+            try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    modelo.addRow(new Object[]{
+                        rs.getLong("numero_identificacion"),
+                        rs.getString("tipo_identificacion"),
+                        rs.getString("nombre_completo"),
+                        rs.getString("sexo"),
+                        rs.getString("nacionalidad"),
+                        rs.getDate("fecha_nacimiento"),
+                        rs.getString("lugar"),
+                        rs.getString("email"),
+                        rs.getString("telefono"),
+                        rs.getString("domicilio"),
+                        rs.getString("libreta"),
+                        rs.getBoolean("verificada") ? "Sí" : "No"
+                    });
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar las hojas de vida: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        jTable1.setModel(modelo);
     }
 
     private void cargarDetalleCompleto(long idCandidato) {

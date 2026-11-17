@@ -30,12 +30,16 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         String nombreCompleto = jTextField2.getText().trim();
         String correo = jTextField3.getText().trim();
         String usuario = jTextField4.getText().trim();
-        String contrasena = jTextField5.getText().trim();
+        String contrasena = new String(jTextField5.getPassword()).trim();
 
         if (identificacion.isEmpty() || nombreCompleto.isEmpty() || correo.isEmpty()
                 || usuario.isEmpty() || contrasena.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Complete todos los campos del verificador.",
                     "Campos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (LimitesTexto.excede(this, "Nombre completo", nombreCompleto, 100, "Correo", correo, 50,
+                "Usuario", usuario, 50, "Contraseña", contrasena, 50)) {
             return;
         }
         if (nombreCompleto.split("\\s+").length < 2 || !correo.contains("@")) {
@@ -98,7 +102,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jTextField4 = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        jTextField5 = new javax.swing.JTextField();
+        jTextField5 = new javax.swing.JPasswordField();
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -236,6 +240,6 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField3;
     private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
+    private javax.swing.JPasswordField jTextField5;
     // End of variables declaration//GEN-END:variables
 }
