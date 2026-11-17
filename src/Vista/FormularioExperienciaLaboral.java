@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.BaseDatos;
+import BaseDatos.MunicipioDAO;
 import Modelo.Empresa;
 import Modelo.ExperienciaLaboral;
 import Modelo.TipoEmpresa;
@@ -561,7 +562,6 @@ private long numeroIdentificacionCandidato;
                 new FormularioExperienciaOcupacion(numeroIdentificacionCandidato).setVisible(true);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "¡Registro de experiencia con éxito!");
             this.dispose();
             new FormularioExperienciaOcupacion(numeroIdentificacionCandidato).setVisible(true);
         }

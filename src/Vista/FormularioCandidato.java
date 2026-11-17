@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.BaseDatos;
+import BaseDatos.MunicipioDAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
@@ -60,14 +61,14 @@ public class FormularioCandidato extends javax.swing.JFrame {
 
         String nacionalidad = jRadioButton3.isSelected() ? "COLOMBIA" : "EXTRANJERO";
 
-        int anio = Integer.parseInt(jTextField8.getText().trim());
-        int mes = Integer.parseInt(jTextField7.getText().trim());
-        int dia = Integer.parseInt(jTextField6.getText().trim());
-        LocalDate fechaNac = LocalDate.of(anio, mes, dia);
+            LocalDate fechaNac = LocalDate.of(
+                    Integer.parseInt(jTextField8.getText().trim()),
+                    Integer.parseInt(jTextField7.getText().trim()),
+                    Integer.parseInt(jTextField6.getText().trim()));
 
-        String paisNac = jTextField9.getText().trim();
-        String deptoNac = jTextField10.getText().trim();
-        String munNac = jTextField11.getText().trim();
+            String paisNac = jTextField9.getText().trim();
+            String deptoNac = jTextField10.getText().trim();
+            String munNac = jTextField11.getText().trim();
 
         String direccion = jTextField12.getText().trim();
         String paisDom = jTextField13.getText().trim();
@@ -85,9 +86,9 @@ public class FormularioCandidato extends javax.swing.JFrame {
             return;
         }
 
-        String numLibretaStr = jTextField18.getText().trim();
-        String distritoMil = jTextField19.getText().trim();
-        String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
+            String numLibretaStr = jTextField18.getText().trim();
+            String distritoMil = jTextField19.getText().trim();
+            String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
 
         BaseDatos bd = new BaseDatos();
         conexion = bd.getConexion();
@@ -109,32 +110,30 @@ public class FormularioCandidato extends javax.swing.JFrame {
             registrarMunicipio(pstMunicipio, munDom, deptoDom, paisDom);
         }
 
-        String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, pais_nacimiento, departamento_nacimiento, municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        PreparedStatement pst1 = conexion.prepareStatement(sqlCandidato);
-        pst1.setLong(1, Long.parseLong(numIdentificacion));
-        pst1.setString(2, tipoDoc);
-        pst1.setString(3, nombres);
-        pst1.setString(4, primerApellido);
-        pst1.setString(5, segundoApellido.isEmpty() ? null : segundoApellido);
-        pst1.setString(6, sexo);
-        pst1.setString(7, nacionalidad);
-        pst1.setString(8, telefono);
-        pst1.setString(9, email);
-        pst1.setBoolean(10, true); 
-        pst1.setObject(11, fechaNac);
-        pst1.setString(12, paisNac);
-        pst1.setString(13, deptoNac);
-        pst1.setString(14, munNac);
-        pst1.executeUpdate();
+                String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, id_municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sqlCandidato)) {
+                    pst.setLong(1, Long.parseLong(numIdentificacion));
+                    pst.setString(2, tipoDoc);
+                    pst.setString(3, nombres);
+                    pst.setString(4, primerApellido);
+                    pst.setString(5, segundoApellido.isEmpty() ? null : segundoApellido);
+                    pst.setString(6, sexo);
+                    pst.setString(7, nacionalidad);
+                    pst.setString(8, telefono);
+                    pst.setString(9, email);
+                    pst.setBoolean(10, true);
+                    pst.setObject(11, fechaNac);
+                    pst.setInt(12, idMunNac);
+                    pst.executeUpdate();
+                }
 
-        String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, pais, departamento, municipio) VALUES (?, ?, ?, ?, ?)";
-        PreparedStatement pst2 = conexion.prepareStatement(sqlDomicilio);
-        pst2.setLong(1, Long.parseLong(numIdentificacion));
-        pst2.setString(2, direccion);
-        pst2.setString(3, paisDom);
-        pst2.setString(4, deptoDom);
-        pst2.setString(5, munDom);
-        pst2.executeUpdate();
+                String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, id_municipio) VALUES (?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sqlDomicilio)) {
+                    pst.setLong(1, Long.parseLong(numIdentificacion));
+                    pst.setString(2, direccion);
+                    pst.setInt(3, idMunDom);
+                    pst.executeUpdate();
+                }
 
         if (!numLibretaStr.isEmpty() && claseLibreta != null) {
             if (distritoMil.isEmpty()) {
