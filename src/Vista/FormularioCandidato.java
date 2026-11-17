@@ -5,8 +5,6 @@
 package Vista;
 import BaseDatos.BaseDatos;
 import BaseDatos.MunicipioDAO;
-import java.sql.SQLException;
-import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
@@ -77,8 +75,8 @@ public class FormularioCandidato extends javax.swing.JFrame {
             conexion.setAutoCommit(false);
             try {
                 MunicipioDAO municipios = new MunicipioDAO(conexion);
-                int idMunNac = resolverMunicipio(municipios, munNac, deptoNac, paisNac);
-                int idMunDom = resolverMunicipio(municipios, munDom, deptoDom, paisDom);
+                int idMunNac = SelectorMunicipio.resolver(this, municipios, munNac, deptoNac, paisNac);
+                int idMunDom = SelectorMunicipio.resolver(this, municipios, munDom, deptoDom, paisDom);
 
                 String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, id_municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement pst = conexion.prepareStatement(sqlCandidato)) {
@@ -133,40 +131,6 @@ public class FormularioCandidato extends javax.swing.JFrame {
         }
     }
 
-    /** Devuelve el id del municipio: reutiliza uno existente o pregunta si hay nombres parecidos. */
-    private int resolverMunicipio(MunicipioDAO dao, String nombre, String depto, String pais) throws SQLException {
-        List<MunicipioDAO.Municipio> parecidos = dao.buscarParecidos(nombre);
-
-        // Mismo nombre y mismo departamento: es el mismo municipio, no se pregunta
-        for (MunicipioDAO.Municipio m : parecidos) {
-            if (m.nombre().equalsIgnoreCase(nombre) && m.departamento().equalsIgnoreCase(depto)) {
-                return m.id();
-            }
-        }
-
-        if (!parecidos.isEmpty()) {
-            Object[] opciones = new Object[parecidos.size() + 1];
-            for (int i = 0; i < parecidos.size(); i++) opciones[i] = parecidos.get(i);
-            opciones[parecidos.size()] = "Es otro municipio";
-
-            int elegido = JOptionPane.showOptionDialog(this,
-                    "Encontramos municipios parecidos a \"" + nombre + "\". ¿Cuál es?",
-                    "Municipio", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
-                    null, opciones, opciones[0]);
-
-            if (elegido == JOptionPane.CLOSED_OPTION) {
-                throw new IllegalStateException("Registro cancelado en la selección de municipio");
-            }
-            if (elegido < parecidos.size()) {
-                return parecidos.get(elegido).id();
-            }
-        }
-
-        if (depto.isEmpty() || pais.isEmpty()) {
-            throw new IllegalArgumentException("Para el municipio nuevo \"" + nombre + "\" indique departamento y país");
-        }
-        return dao.registrar(nombre, depto, pais);
-    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
