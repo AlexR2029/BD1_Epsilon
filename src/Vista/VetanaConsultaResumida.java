@@ -26,36 +26,36 @@ public class VetanaConsultaResumida extends javax.swing.JFrame {
         cargarDatosResumidos();
     }
 
-    private void cargarDatosResumidos() {
-        DefaultTableModel modelo = new DefaultTableModel();
-        modelo.addColumn("Cédula");
-        modelo.addColumn("Nombres");
-        modelo.addColumn("Apellidos");
-        modelo.addColumn("Correo");
-        modelo.addColumn("Teléfono");
+private void cargarDatosResumidos() {
+    DefaultTableModel modelo = new DefaultTableModel();
+    modelo.addColumn("Cédula");
+    modelo.addColumn("Nombres");
+    modelo.addColumn("Apellidos");
+    modelo.addColumn("Correo");
+    modelo.addColumn("Teléfono");
 
-        try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM CANDIDATOS");
+    try {
+        BaseDatos bd = new BaseDatos();
+        Connection con = bd.getConexion();
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT numero_identificacion, nombre, primer_apellido, email, telefono FROM candidatos");
 
-            while (rs.next()) {
-                Object[] fila = new Object[5];
-                fila[0] = rs.getLong("numero_identificacion_candidato");
-                fila[1] = rs.getString("nombres");
-                fila[2] = rs.getString("apellidos");
-                fila[3] = rs.getString("correo_electronico");
-                fila[4] = rs.getString("telefono");
-                modelo.addRow(fila);
-            }
-
-            jTable1.setModel(modelo);
-            con.close();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        while (rs.next()) {
+            Object[] fila = new Object[5];
+            fila[0] = rs.getLong("numero_identificacion");
+            fila[1] = rs.getString("nombre");
+            fila[2] = rs.getString("primer_apellido");
+            fila[3] = rs.getString("email");
+            fila[4] = rs.getString("telefono");
+            modelo.addRow(fila);
         }
+
+        jTable1.setModel(modelo);
+        con.close();
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
+}
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
