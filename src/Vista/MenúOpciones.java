@@ -20,8 +20,8 @@ public class MenúOpciones extends javax.swing.JFrame {
         initComponents();
         jButton4.addActionListener(e -> abrirHojaVida());
         jButton5.addActionListener(e -> abrirVerificacion());
-        jButton8.addActionListener(e -> new VentanaConsultaFormacion().setVisible(true));
-        jButton9.addActionListener(e -> new VentanaConsultaExperiencia().setVisible(true));
+        jButton8.addActionListener(e -> abrirConsulta("Consultar formación académica", VentanaConsultaFormacion::new));
+        jButton9.addActionListener(e -> abrirConsulta("Consultar experiencia laboral", VentanaConsultaExperiencia::new));
     }
 
     /**
@@ -158,6 +158,23 @@ public class MenúOpciones extends javax.swing.JFrame {
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         new VetanaConsultaResumida().setVisible(true);
     }//GEN-LAST:event_jButton6ActionPerformed
+
+    private void abrirConsulta(String titulo, java.util.function.LongFunction<javax.swing.JFrame> crearVentana) {
+        String texto = JOptionPane.showInputDialog(this, "Identificación del candidato:", titulo, JOptionPane.QUESTION_MESSAGE);
+        if (texto == null) return; // canceló
+        try {
+            long id = Long.parseLong(texto.trim());
+            if (!new HojaVidaDAO().existeCandidato(id)) {
+                JOptionPane.showMessageDialog(this, "No existe una hoja de vida con la identificación " + id + ".", titulo, JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            crearVentana.apply(id).setVisible(true);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "La identificación debe ser numérica.", "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+        } catch (java.sql.SQLException ex) {
+            JOptionPane.showMessageDialog(this, "No fue posible consultar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     private void abrirHojaVida() {
         new FormularioCandidato().setVisible(true);

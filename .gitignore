@@ -20,3 +20,7 @@ docs/pruebas/
 CLAUDE.md
 
 .claude/
+
+# Scripts SQL (locales)
+
+*.sql

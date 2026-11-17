@@ -7,6 +7,7 @@ package Vista;
 import BaseDatos.BaseDatos;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
 /**
@@ -20,6 +21,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
      */
     public FormularioRegistroRRHH() {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         jTextField5.addActionListener(e -> registrarVerificador());
     }
 
@@ -36,37 +38,36 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
                     "Campos incompletos", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        String[] nombres = nombreCompleto.split("\\s+", 2);
-        String nombre = nombres[0];
-        String apellido = nombres.length > 1 ? nombres[1] : "";
-        if (apellido.isEmpty() || !correo.contains("@")) {
+        if (nombreCompleto.split("\\s+").length < 2 || !correo.contains("@")) {
             JOptionPane.showMessageDialog(this, "Ingrese nombre y apellido, y un correo válido.",
                     "Datos inválidos", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String sql = "INSERT INTO VERIFICADORES (identificacion, nombres, apellidos, email, telefono) "
-                + "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO PERSONAL_RRHH (numero_identificacion, nombre_completo, "
+                + "correo_empresarial, usuario, contraseña) VALUES (?, ?, ?, ?, ?)";
         try (Connection conexion = new BaseDatos().getConexion()) {
             if (conexion == null) {
                 return;
             }
             try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
                 sentencia.setLong(1, Long.parseLong(identificacion));
-                sentencia.setString(2, nombre);
-                sentencia.setString(3, apellido);
-                sentencia.setString(4, correo);
-                sentencia.setString(5, usuario);
+                sentencia.setString(2, nombreCompleto);
+                sentencia.setString(3, correo);
+                sentencia.setString(4, usuario);
+                sentencia.setString(5, contrasena); // texto plano, decisión del equipo
                 sentencia.executeUpdate();
             }
-            JOptionPane.showMessageDialog(this, "Verificador registrado correctamente.");
+            JOptionPane.showMessageDialog(this, "Personal de RRHH registrado correctamente.");
             limpiarCampos();
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "La identificación debe ser numérica.",
                     "Datos inválidos", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "No fue posible registrar el verificador: "
-                    + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            String mensaje = ex.getErrorCode() == 1062
+                    ? "Ya existe una persona de RRHH con esa identificación."
+                    : "No fue posible registrar al personal de RRHH: " + ex.getMessage();
+            JOptionPane.showMessageDialog(this, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

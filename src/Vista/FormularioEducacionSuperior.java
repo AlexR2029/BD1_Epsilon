@@ -21,6 +21,7 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
     public FormularioEducacionSuperior(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         ButtonGroup grupoGraduado = new ButtonGroup();
@@ -74,12 +75,6 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
             String tarjetaProfesional = tarjetaStr.isEmpty() ? null : tarjetaStr;
 
             EducacionSuperior eduSup = new EducacionSuperior(titulo, mes, anio, modalidad, semestres, graduado, tarjetaProfesional);
-
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-            if (conexion == null) {
-                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
-            }
 
             String sql = "INSERT INTO EDUCACION_SUPERIOR_CANDIDATOS (numero_identificacion_candidato, titulo_obtenido, numero_tarjeta_profesional, modalidad_academica, semestres_aprobados, graduado, mes_terminacion, anio_terminacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pst = conexion.prepareStatement(sql);
@@ -315,7 +310,7 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         if (!jTextField1.getText().trim().isEmpty()) {
             if (registrarEstudio()) {
-                JOptionPane.showMessageDialog(this, "¡Formación superior registrada con éxito!");
+                // sin alerta de éxito: la siguiente ventana se abre directamente
                 this.dispose();
                 new FormularioIdioma(numeroIdentificacionCandidato).setVisible(true);
 

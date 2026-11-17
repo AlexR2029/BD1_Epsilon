@@ -21,6 +21,7 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
 
     public VentanaConsultaDetallada() {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         cargarCandidatos();
 
@@ -63,70 +64,176 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
 
     private void cargarDetalleCompleto(long idCandidato) {
         StringBuilder sb = new StringBuilder();
-        try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-
-            PreparedStatement pst1 = con.prepareStatement("SELECT * FROM CANDIDATOS WHERE numero_identificacion = ?");
-            pst1.setLong(1, idCandidato);
-            ResultSet rs1 = pst1.executeQuery();
-            if (rs1.next()) {
-                sb.append("=== HOJA DE VIDA DETALLADA ===\n");
-                sb.append("Cédula: ").append(rs1.getLong("numero_identificacion")).append("\n");
-                sb.append("Nombre Completo: ").append(rs1.getString("nombre")).append(" ")
-                        .append(rs1.getString("primer_apellido")).append(" ")
-                        .append(rs1.getString("segundo_apellido")).append("\n");
-                sb.append("Correo: ").append(rs1.getString("email")).append("\n");
-                sb.append("Teléfono: ").append(rs1.getString("telefono")).append("\n\n");
+        try (Connection con = new BaseDatos().getConexion()) {
+            if (con == null) {
+                jTextArea1.setText("No fue posible conectarse a la base de datos.");
+                return;
             }
 
-            PreparedStatement pst2 = con.prepareStatement("SELECT * FROM EDUCACION_BASICA_CANDIDATOS WHERE numero_identificacion_candidato = ?");
-            pst2.setLong(1, idCandidato);
-            ResultSet rs2 = pst2.executeQuery();
-            sb.append("--- EDUCACIÓN BÁSICA ---\n");
-            while (rs2.next()) {
-                sb.append("• Grado: ").append(rs2.getInt("ultimo_grado_aprobado"))
-                  .append(" | Título: ").append(rs2.getString("titulo_obtenido"))
-                  .append(" (Terminación: ").append(rs2.getInt("mes_grado")).append("/").append(rs2.getInt("anio_grado")).append(")\n");
-            }
-            sb.append("\n");
+            // Datos personales, lugar de nacimiento, domicilio y libreta
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT c.*, m.nombre AS mun_nac, m.departamento AS dep_nac, m.pais AS pais_nac, "
+                    + "d.direccion, md.nombre AS mun_dom, md.departamento AS dep_dom, md.pais AS pais_dom, "
+                    + "lm.numero AS libreta, lm.clase AS clase_libreta, lm.distrito_militar "
+                    + "FROM candidatos c "
+                    + "JOIN municipios m ON m.id_municipio = c.id_municipio_nacimiento "
+                    + "LEFT JOIN domicilios_candidatos d ON d.numero_identificacion_candidato = c.numero_identificacion "
+                    + "LEFT JOIN municipios md ON md.id_municipio = d.id_municipio "
+                    + "LEFT JOIN libretas_militares lm ON lm.numero_identificacion_candidato = c.numero_identificacion "
+                    + "WHERE c.numero_identificacion = ?")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (!rs.next()) {
+                        jTextArea1.setText("No existe la hoja de vida " + idCandidato + ".");
+                        return;
+                    }
+                    sb.append("=== HOJA DE VIDA ===\n");
+                    sb.append("Documento: ").append(rs.getString("tipo_identificacion"))
+                      .append(" ").append(rs.getLong("numero_identificacion")).append("\n");
+                    sb.append("Nombre completo: ").append(rs.getString("nombre")).append(" ")
+                      .append(rs.getString("primer_apellido"));
+                    String segundo = rs.getString("segundo_apellido");
+                    if (segundo != null) sb.append(" ").append(segundo);
+                    sb.append("\n");
+                    sb.append("Sexo: ").append(rs.getString("sexo"))
+                      .append(" | Nacionalidad: ").append(rs.getString("nacionalidad")).append("\n");
+                    sb.append("Fecha de nacimiento: ").append(rs.getDate("fecha_nacimiento")).append("\n");
+                    sb.append("Lugar de nacimiento: ").append(rs.getString("mun_nac")).append(" - ")
+                      .append(rs.getString("dep_nac")).append(" (").append(rs.getString("pais_nac")).append(")\n");
+                    sb.append("Correo: ").append(rs.getString("email"))
+                      .append(" | Teléfono: ").append(rs.getString("telefono")).append("\n");
+                    sb.append("Manifiesta juramento: ").append(rs.getBoolean("manifiesta_juramento") ? "Sí" : "No")
+                      .append(" | Verificada: ").append(rs.getBoolean("verificada") ? "Sí" : "No").append("\n");
+                    String observaciones = rs.getString("observaciones_rrhh");
+                    if (observaciones != null) sb.append("Observaciones RRHH: ").append(observaciones).append("\n");
 
-            PreparedStatement pst3 = con.prepareStatement("SELECT * FROM EDUCACION_SUPERIOR_CANDIDATOS WHERE numero_identificacion_candidato = ?");
-            pst3.setLong(1, idCandidato);
-            ResultSet rs3 = pst3.executeQuery();
-            sb.append("--- EDUCACIÓN SUPERIOR ---\n");
-            while (rs3.next()) {
-                sb.append("• Título: ").append(rs3.getString("titulo_obtenido"))
-                  .append(" [Modalidad: ").append(rs3.getString("modalidad_academica")).append("]")
-                  .append(" - Semestres: ").append(rs3.getInt("semestres_aprobados"))
-                  .append(" - Graduado: ").append(rs3.getBoolean("graduado") ? "Sí" : "No").append("\n");
-            }
-            sb.append("\n");
+                    sb.append("\n--- DOMICILIO ---\n");
+                    if (rs.getString("direccion") == null) {
+                        sb.append("No registrado\n");
+                    } else {
+                        sb.append(rs.getString("direccion")).append(", ").append(rs.getString("mun_dom"))
+                          .append(" - ").append(rs.getString("dep_dom"))
+                          .append(" (").append(rs.getString("pais_dom")).append(")\n");
+                    }
 
-            PreparedStatement pst4 = con.prepareStatement("SELECT * FROM IDIOMAS_CANDIDATOS WHERE numero_identificacion_candidato = ?");
-            pst4.setLong(1, idCandidato);
-            ResultSet rs4 = pst4.executeQuery();
-            sb.append("--- IDIOMAS ---\n");
-            while (rs4.next()) {
-                sb.append("• Idioma: ").append(rs4.getString("nombre"))
-                  .append(" | Habla: ").append(rs4.getString("habla"))
-                  .append(", Lee: ").append(rs4.getString("lectura"))
-                  .append(", Escribe: ").append(rs4.getString("escritura")).append("\n");
+                    sb.append("\n--- LIBRETA MILITAR ---\n");
+                    if (rs.getString("libreta") == null) {
+                        sb.append("No registra\n");
+                    } else {
+                        sb.append("Número ").append(rs.getString("libreta"))
+                          .append(" | Clase ").append(rs.getString("clase_libreta"))
+                          .append(" | Distrito ").append(rs.getString("distrito_militar")).append("\n");
+                    }
+                }
             }
-            sb.append("\n");
 
-            PreparedStatement pst5 = con.prepareStatement("SELECT * FROM EXPERIENCIAS_OCUPACIONES_CANDIDATOS WHERE numero_identificacion_candidato = ?");
-            pst5.setLong(1, idCandidato);
-            ResultSet rs5 = pst5.executeQuery();
-            sb.append("--- EXPERIENCIA / OCUPACIONES ---\n");
-            while (rs5.next()) {
-                sb.append("• Ocupación: ").append(rs5.getString("ocupacion"))
-                  .append(" | Experiencia: ").append(rs5.getInt("anio_experiencia")).append(" años y ")
-                  .append(rs5.getInt("meses_experiencia")).append(" meses\n");
+            sb.append("\n--- EDUCACIÓN BÁSICA ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT * FROM educacion_basica_candidatos WHERE numero_identificacion_candidato = ?")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• Último grado aprobado: ").append(rs.getInt("ultimo_grado_aprobado"))
+                          .append(" | Título: ").append(rs.getString("titulo_obtenido"))
+                          .append(" | Terminación: ").append(rs.getInt("mes_grado"))
+                          .append("/").append(rs.getInt("anio_grado")).append("\n");
+                    }
+                }
+            }
+
+            sb.append("\n--- EDUCACIÓN SUPERIOR ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT * FROM educacion_superior_candidatos WHERE numero_identificacion_candidato = ?")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• Título: ").append(rs.getString("titulo_obtenido"))
+                          .append(" | Modalidad: ").append(rs.getString("modalidad_academica"))
+                          .append(" | Semestres: ").append(rs.getInt("semestres_aprobados"))
+                          .append(" | Graduado: ").append(rs.getBoolean("graduado") ? "Sí" : "No")
+                          .append(" | Tarjeta profesional: ").append(rs.getString("numero_tarjeta_profesional"))
+                          .append(" | Terminación: ").append(rs.getInt("mes_terminacion"))
+                          .append("/").append(rs.getInt("anio_terminacion")).append("\n");
+                    }
+                }
+            }
+
+            sb.append("\n--- IDIOMAS ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT * FROM idiomas_candidatos WHERE numero_identificacion_candidato = ?")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• ").append(rs.getString("nombre"))
+                          .append(" | Habla: ").append(rs.getString("habla"))
+                          .append(", Lee: ").append(rs.getString("lectura"))
+                          .append(", Escribe: ").append(rs.getString("escritura")).append("\n");
+                    }
+                }
+            }
+
+            sb.append("\n--- EXPERIENCIA LABORAL ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT ec.cargo, ec.dependencia, ec.fecha_ingreso, ec.fecha_retiro, "
+                    + "e.nombre, e.tipo_empresa, e.email_empresa, e.telefono, e.direccion AS dir_empresa, "
+                    + "m.nombre AS mun, m.departamento AS dep, m.pais "
+                    + "FROM empleos_candidatos ec "
+                    + "JOIN empresas e ON e.nombre = ec.nombre_empresa "
+                    + "JOIN municipios m ON m.id_municipio = e.id_municipio "
+                    + "WHERE ec.numero_identificacion_candidato = ? ORDER BY ec.fecha_ingreso")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• Empresa: ").append(rs.getString("nombre"))
+                          .append(" (").append(rs.getString("tipo_empresa")).append(") en ")
+                          .append(rs.getString("mun")).append(" - ").append(rs.getString("dep"))
+                          .append(" (").append(rs.getString("pais")).append(")\n")
+                          .append("  Correo: ").append(rs.getString("email_empresa"))
+                          .append(" | Teléfono: ").append(rs.getString("telefono"))
+                          .append(" | Dirección: ").append(rs.getString("dir_empresa")).append("\n")
+                          .append("  Cargo: ").append(rs.getString("cargo"))
+                          .append(" | Dependencia: ").append(rs.getString("dependencia"))
+                          .append(" | Ingreso: ").append(rs.getDate("fecha_ingreso"))
+                          .append(" | Retiro: ").append(rs.getDate("fecha_retiro") == null ? "vigente" : rs.getDate("fecha_retiro").toString())
+                          .append("\n");
+                    }
+                }
+            }
+
+            sb.append("\n--- OCUPACIONES ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT * FROM experiencias_ocupaciones_candidatos WHERE numero_identificacion_candidato = ?")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• Ocupación: ").append(rs.getString("ocupacion"))
+                          .append(" | Experiencia: ").append(rs.getInt("anio_experiencia")).append(" años y ")
+                          .append(rs.getInt("meses_experiencia")).append(" meses\n");
+                    }
+                }
+            }
+
+            sb.append("\n--- VERIFICACIONES ---\n");
+            try (PreparedStatement pst = con.prepareStatement(
+                    "SELECT v.fecha_verificacion, v.aprobada, v.observaciones, p.nombre_completo "
+                    + "FROM verificaciones_hoja_vida v "
+                    + "JOIN personal_rrhh p ON p.numero_identificacion = v.identificacion_verificador "
+                    + "WHERE v.numero_identificacion_candidato = ? ORDER BY v.fecha_verificacion")) {
+                pst.setLong(1, idCandidato);
+                try (ResultSet rs = pst.executeQuery()) {
+                    while (rs.next()) {
+                        sb.append("• ").append(rs.getTimestamp("fecha_verificacion"))
+                          .append(" | Verificador: ").append(rs.getString("nombre_completo"))
+                          .append(" | ").append(rs.getBoolean("aprobada") ? "Aprobada" : "No aprobada");
+                        String obs = rs.getString("observaciones");
+                        if (obs != null && !obs.isEmpty()) sb.append(" | ").append(obs);
+                        sb.append("\n");
+                    }
+                }
             }
 
             jTextArea1.setText(sb.toString());
-            con.close();
+            jTextArea1.setCaretPosition(0);
         } catch (Exception e) {
             jTextArea1.setText("Error al cargar el detalle: " + e.getMessage());
         }

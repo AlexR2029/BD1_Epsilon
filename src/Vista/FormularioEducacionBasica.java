@@ -21,6 +21,7 @@ private long numeroIdentificacionCandidato;
     public FormularioEducacionBasica(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         
         jComboBox1.removeAllItems();
@@ -52,12 +53,6 @@ private void guardarEducacionBasica() {
         
         EducacionBasica educacionBasica = new EducacionBasica(titulo, mesGrado, anioGrado, gradoAprobado);
 
-        BaseDatos bd = new BaseDatos();
-        Connection conexion = bd.getConexion();
-        if (conexion == null) {
-            throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
-        }
-
         String sql = "INSERT INTO EDUCACION_BASICA_CANDIDATOS (numero_identificacion_candidato, ultimo_grado_aprobado, titulo_obtenido, mes_grado, anio_grado) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement pst = conexion.prepareStatement(sql)) {
         pst.setLong(1, numeroIdentificacionCandidato);
@@ -70,7 +65,7 @@ private void guardarEducacionBasica() {
         pst.executeUpdate();
         }
 
-            JOptionPane.showMessageDialog(this, "¡Educación básica registrada con éxito!");
+            // sin alerta de éxito: la siguiente ventana se abre directamente
             
             this.dispose();
 
