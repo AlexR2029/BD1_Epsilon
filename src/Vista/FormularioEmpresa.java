@@ -19,7 +19,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-/** Formulario independiente para registrar una empresa. */
 public class FormularioEmpresa extends JFrame {
 
     private final JTextField txtNombre = new JTextField();
