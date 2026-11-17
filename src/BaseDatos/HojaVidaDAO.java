@@ -1,6 +1,7 @@
 package BaseDatos;
 
 import Modelo.Candidato;
+import Modelo.ClaseLibreta;
 import Modelo.Domicilio;
 import Modelo.Educacion;
 import Modelo.EducacionBasica;
@@ -14,7 +15,6 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,18 +42,13 @@ public class HojaVidaDAO {
         this.baseDatos = baseDatos;
     }
 
-    public void registrarDocumento(String codigo, String nombre) throws SQLException {
-        validarTexto(codigo, "El código del documento");
-        validarTexto(nombre, "El nombre del documento");
-        ejecutar("INSERT INTO TIPOS_DOCUMENTO (codigo, nombre) VALUES (?, ?)", codigo, nombre);
-    }
-
-    public void registrarMunicipio(String nombre, String departamento, String pais) throws SQLException {
+    public int registrarMunicipio(String nombre, String departamento, String pais) throws SQLException {
         validarTexto(nombre, "El nombre del municipio");
         validarTexto(departamento, "El departamento");
         validarTexto(pais, "El país");
-        ejecutar("INSERT INTO MUNICIPIOS (nombre, departamento, pais) VALUES (?, ?, ?)",
-                nombre, departamento, pais);
+        try (Connection conexion = abrir()) {
+            return new MunicipioDAO(conexion).registrar(nombre, departamento, pais);
+        }
     }
 
     public void registrarEmpresa(Empresa empresa) throws SQLException {
@@ -61,23 +56,9 @@ public class HojaVidaDAO {
             throw new IllegalArgumentException("La empresa es obligatoria");
         }
         validarTexto(empresa.getNombre(), "El nombre de la empresa");
-        ejecutar("INSERT INTO EMPRESAS (nombre, tipo_empresa, pais, departamento, municipio, "
-                        + "email_empresa, telefono, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                empresa.getNombre(), enumName(empresa.getTipo()), empresa.getPais(),
-                empresa.getDepartamento(), empresa.getMunicipio(), empresa.getEmail(),
-                empresa.getTelefono(), empresa.getDireccion());
-    }
-
-    public void registrarVerificador(long identificacion, String nombres, String apellidos,
-            String email, String telefono) throws SQLException {
-        if (identificacion <= 0) {
-            throw new IllegalArgumentException("La identificación del verificador debe ser positiva");
+        try (Connection conexion = abrir()) {
+            insertarEmpresa(conexion, empresa);
         }
-        validarTexto(nombres, "Los nombres del verificador");
-        validarTexto(apellidos, "Los apellidos del verificador");
-        ejecutar("INSERT INTO VERIFICADORES (identificacion, nombres, apellidos, email, telefono) "
-                        + "VALUES (?, ?, ?, ?, ?)",
-                identificacion, nombres, apellidos, email, telefono);
     }
 
     /**
@@ -120,6 +101,10 @@ public class HojaVidaDAO {
                 identificacionCandidato, identificacionVerificador, aprobada, observaciones);
     }
 
+    public boolean existeCandidato(long identificacion) throws SQLException {
+        return !consultar("SELECT 1 FROM CANDIDATOS WHERE numero_identificacion = ?", identificacion).isEmpty();
+    }
+
     public List<Map<String, Object>> consultarHojasVidaResumidas() throws SQLException {
         return consultar("SELECT numero_identificacion, tipo_identificacion, nombre, "
                         + "primer_apellido, segundo_apellido, sexo, nacionalidad, email, telefono "
@@ -127,11 +112,12 @@ public class HojaVidaDAO {
     }
 
     public List<Map<String, Object>> consultarHojasVidaDetalladas() throws SQLException {
-        return consultar("SELECT c.*, d.direccion, d.pais AS pais_domicilio, "
-                        + "d.departamento AS departamento_domicilio, d.municipio AS municipio_domicilio, "
+        return consultar("SELECT c.*, d.direccion, m.pais AS pais_domicilio, "
+                        + "m.departamento AS departamento_domicilio, m.nombre AS municipio_domicilio, "
                         + "lm.numero AS numero_libreta, lm.clase AS clase_libreta, "
                         + "lm.distrito_militar FROM CANDIDATOS c "
                         + "LEFT JOIN DOMICILIOS_CANDIDATOS d ON d.numero_identificacion_candidato = c.numero_identificacion "
+                        + "LEFT JOIN MUNICIPIOS m ON m.id_municipio = d.id_municipio "
                         + "LEFT JOIN LIBRETAS_MILITARES lm ON lm.numero_identificacion_candidato = c.numero_identificacion "
                         + "ORDER BY c.primer_apellido, c.nombre");
     }
@@ -147,48 +133,50 @@ public class HojaVidaDAO {
                         + "ON eb.numero_identificacion_candidato = c.numero_identificacion "
                         + "LEFT JOIN EDUCACION_SUPERIOR_CANDIDATOS es "
                         + "ON es.numero_identificacion_candidato = c.numero_identificacion "
-                        + "WHERE c.numero_identificacion = ? ORDER BY eb.id, es.id", identificacion);
+                        + "WHERE c.numero_identificacion = ?", identificacion);
     }
 
     public List<Map<String, Object>> consultarHojaVidaConExperiencia(long identificacion) throws SQLException {
         return consultar("SELECT c.numero_identificacion, c.nombre, c.primer_apellido, "
-                        + "c.segundo_apellido, e.nombre_empresa, e.tipo_empresa, e.pais, "
-                        + "e.departamento, e.municipio, e.email_empresa, e.telefono, e.direccion, "
+                        + "c.segundo_apellido, ec.nombre_empresa, e.tipo_empresa, m.pais, "
+                        + "m.departamento, m.nombre AS municipio, e.email_empresa, e.telefono, e.direccion, "
                         + "ec.cargo, ec.dependencia, ec.fecha_ingreso, ec.fecha_retiro "
                         + "FROM CANDIDATOS c LEFT JOIN EMPLEOS_CANDIDATOS ec "
                         + "ON ec.numero_identificacion_candidato = c.numero_identificacion "
                         + "LEFT JOIN EMPRESAS e ON e.nombre = ec.nombre_empresa "
+                        + "LEFT JOIN MUNICIPIOS m ON m.id_municipio = e.id_municipio "
                         + "WHERE c.numero_identificacion = ? ORDER BY ec.fecha_ingreso", identificacion);
     }
 
     private void insertarCandidato(Connection conexion, Candidato c) throws SQLException {
         ejecutar(conexion, "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, "
                         + "primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, "
-                        + "manifiesta_juramento, fecha_nacimiento, pais_nacimiento, "
-                        + "departamento_nacimiento, municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        + "manifiesta_juramento, fecha_nacimiento, id_municipio_nacimiento) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 Long.parseLong(c.getNumeroIdentificacion()), enumName(c.getTipoIdentificacion()), c.getNombre(),
                 c.getPrimerApellido(), c.getSegundoApellido(), enumName(c.getSexo()), enumName(c.getNacionalidad()),
                 c.getTelefono(), c.getEmail(), c.isManifiestaJuramento(), Date.valueOf(c.getFechaNacimiento()),
-                c.getPaisNacimiento(), c.getDeptoNacimiento(), c.getMunicipioNacimiento());
+                idMunicipio(conexion, c.getMunicipioNacimiento(), c.getDeptoNacimiento(), c.getPaisNacimiento()));
     }
 
     private void insertarDomicilio(Connection conexion, Candidato c) throws SQLException {
         Domicilio d = c.getDomicilio();
         if (d != null) {
             ejecutar(conexion, "INSERT INTO DOMICILIOS_CANDIDATOS "
-                            + "(numero_identificacion_candidato, direccion, pais, departamento, municipio) "
-                            + "VALUES (?, ?, ?, ?, ?)",
-                    Long.parseLong(c.getNumeroIdentificacion()), d.getDireccion(), d.getPais(),
-                    d.getDepartamento(), d.getMunicipio());
+                            + "(numero_identificacion_candidato, direccion, id_municipio) VALUES (?, ?, ?)",
+                    Long.parseLong(c.getNumeroIdentificacion()), d.getDireccion(),
+                    idMunicipio(conexion, d.getMunicipio(), d.getDepartamento(), d.getPais()));
         }
     }
 
     private void insertarLibreta(Connection conexion, Candidato c) throws SQLException {
         LibretaMilitar l = c.getLibretaMilitar();
-        if (l != null) {
+        if (l != null && l.getClase() != null && l.getClase() != ClaseLibreta.NINGUNA) {
+            // la base guarda 'PRIMERA' o 'SEGUNDA'; el modelo usa PRIMERA_CLASE y SEGUNDA_CLASE
+            String clase = l.getClase() == ClaseLibreta.PRIMERA_CLASE ? "PRIMERA" : "SEGUNDA";
             ejecutar(conexion, "INSERT INTO LIBRETAS_MILITARES "
                             + "(numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)",
-                    l.getNumero(), enumName(l.getClase()), l.getDistritoMilitar(),
+                    l.getNumero(), clase, l.getDistritoMilitar(),
                     Long.parseLong(c.getNumeroIdentificacion()));
         }
     }
@@ -219,18 +207,27 @@ public class HojaVidaDAO {
             throw new IllegalArgumentException("La experiencia debe tener empresa y fecha de ingreso");
         }
         Empresa e = x.getEmpresa();
-        ejecutar(conexion, "INSERT INTO EMPRESAS (nombre, tipo_empresa, pais, departamento, municipio, "
-                        + "email_empresa, telefono, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
-                        + "ON DUPLICATE KEY UPDATE tipo_empresa = VALUES(tipo_empresa), pais = VALUES(pais), "
-                        + "departamento = VALUES(departamento), municipio = VALUES(municipio), "
-                        + "email_empresa = VALUES(email_empresa), telefono = VALUES(telefono), direccion = VALUES(direccion)",
-                e.getNombre(), enumName(e.getTipo()), e.getPais(), e.getDepartamento(), e.getMunicipio(),
-                e.getEmail(), e.getTelefono(), e.getDireccion());
+        insertarEmpresa(conexion, e);
         ejecutar(conexion, "INSERT INTO EMPLEOS_CANDIDATOS "
                         + "(numero_identificacion_candidato, nombre_empresa, cargo, dependencia, fecha_ingreso, fecha_retiro) "
                         + "VALUES (?, ?, ?, ?, ?, ?)", Long.parseLong(id), e.getNombre(), x.getCargo(),
                 x.getDependencia(), Date.valueOf(x.getFechaIngreso()),
                 x.getFechaRetiro() == null ? null : Date.valueOf(x.getFechaRetiro()));
+    }
+
+    // Si la empresa ya existe solo se actualiza su tipo, igual que en FormularioExperienciaLaboral
+    private void insertarEmpresa(Connection conexion, Empresa e) throws SQLException {
+        ejecutar(conexion, "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) "
+                        + "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tipo_empresa = VALUES(tipo_empresa)",
+                e.getNombre(), enumName(e.getTipo()), e.getEmail(), e.getTelefono(), e.getDireccion(),
+                idMunicipio(conexion, e.getMunicipio(), e.getDepartamento(), e.getPais()));
+    }
+
+    private int idMunicipio(Connection conexion, String municipio, String departamento, String pais) throws SQLException {
+        validarTexto(municipio, "El municipio");
+        validarTexto(departamento, "El departamento");
+        validarTexto(pais, "El país");
+        return new MunicipioDAO(conexion).registrar(municipio, departamento, pais);
     }
 
     private void insertarIdioma(Connection conexion, String id, Idioma i) throws SQLException {
@@ -284,7 +281,7 @@ public class HojaVidaDAO {
     private Connection abrir() throws SQLException {
         Connection conexion = baseDatos.getConexion();
         if (conexion == null) {
-            throw new SQLException("No fue posible abrir la conexión a hoja_vida");
+            throw new SQLException("No fue posible abrir la conexión a la base de datos");
         }
         return conexion;
     }

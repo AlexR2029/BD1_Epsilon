@@ -7,7 +7,6 @@ package Vista;
 
 import BaseDatos.BaseDatos;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
@@ -22,6 +21,7 @@ public class VetanaConsultaResumida extends javax.swing.JFrame {
 
     public VetanaConsultaResumida() {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         cargarDatosResumidos();
     }
