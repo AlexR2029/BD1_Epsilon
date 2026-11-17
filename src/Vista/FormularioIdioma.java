@@ -50,6 +50,9 @@ private long numeroIdentificacionCandidato;
                 jTextField1.requestFocus();
                 return false;
             }
+            if (LimitesTexto.excede(this, "Idioma", nombreIdioma, 20)) {
+                return false;
+            }
 
             // Validar la regla de la base de datos que prohíbe el español
             if (nombreIdioma.equals("ESPAÑOL") || nombreIdioma.equals("SPANISH")) {
