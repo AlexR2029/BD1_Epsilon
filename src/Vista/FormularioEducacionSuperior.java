@@ -39,7 +39,8 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
     }
 
     private boolean registrarEstudio() {
-        try {
+        try (Connection conexion = new BaseDatos().getConexion()) {
+            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
             String titulo = jTextField1.getText().trim();
             if (titulo.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "El nombre del título es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -108,7 +109,6 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
             }
 
             pst.executeUpdate();
-            conexion.close();
             return true;
 
         } catch (NumberFormatException nfe) {

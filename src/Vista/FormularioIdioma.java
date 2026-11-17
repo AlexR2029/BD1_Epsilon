@@ -241,8 +241,8 @@ private long numeroIdentificacionCandidato;
                 new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Proceso de registro de idioma realizado con éxito!");
             this.dispose();
+            new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
         }
     }//GEN-LAST:event_jButton2ActionPerformed
 

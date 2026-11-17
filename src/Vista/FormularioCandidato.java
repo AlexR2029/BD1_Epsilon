@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.BaseDatos;
+import BaseDatos.MunicipioDAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
@@ -60,21 +61,30 @@ public class FormularioCandidato extends javax.swing.JFrame {
 
         String nacionalidad = jRadioButton3.isSelected() ? "COLOMBIA" : "EXTRANJERO";
 
-        int anio = Integer.parseInt(jTextField8.getText().trim());
-        int mes = Integer.parseInt(jTextField7.getText().trim());
-        int dia = Integer.parseInt(jTextField6.getText().trim());
-        LocalDate fechaNac = LocalDate.of(anio, mes, dia);
+                String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, id_municipio) VALUES (?, ?, ?)";
+                try (PreparedStatement pst = conexion.prepareStatement(sqlDomicilio)) {
+                    pst.setLong(1, Long.parseLong(numIdentificacion));
+                    pst.setString(2, direccion);
+                    pst.setInt(3, idMunDom);
+                    pst.executeUpdate();
+                }
 
-        String paisNac = jTextField9.getText().trim();
-        String deptoNac = jTextField10.getText().trim();
-        String munNac = jTextField11.getText().trim();
+                if (!numLibretaStr.isEmpty() && claseLibreta != null) {
+                    String sqlLibreta = "INSERT INTO LIBRETAS_MILITARES (numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)";
+                    try (PreparedStatement pst = conexion.prepareStatement(sqlLibreta)) {
+                        pst.setLong(1, Long.parseLong(numLibretaStr));
+                        pst.setString(2, claseLibreta);
+                        pst.setString(3, distritoMil);
+                        pst.setLong(4, Long.parseLong(numIdentificacion));
+                        pst.executeUpdate();
+                    }
+                }
 
-        String direccion = jTextField12.getText().trim();
-        String paisDom = jTextField13.getText().trim();
-        String deptoDom = jTextField14.getText().trim();
-        String munDom = jTextField15.getText().trim();
-        String telefono = jTextField16.getText().trim();
-        String email = jTextField17.getText().trim();
+                conexion.commit();
+            } catch (Exception e) {
+                conexion.rollback();
+                throw e;
+            }
 
         if (paisNac.isEmpty() || deptoNac.isEmpty() || munNac.isEmpty()
                 || direccion.isEmpty() || paisDom.isEmpty() || deptoDom.isEmpty()
@@ -179,7 +189,7 @@ public class FormularioCandidato extends javax.swing.JFrame {
             try { conexion.close(); } catch (java.sql.SQLException ignored) { }
         }
     }
-}
+
 
     private void registrarMunicipio(PreparedStatement sentencia, String municipio,
             String departamento, String pais) throws java.sql.SQLException {
