@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS TIPOS_DOCUMENTO (
 );
 
 CREATE TABLE IF NOT EXISTS MUNICIPIOS (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_municipio INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     departamento VARCHAR(100) NOT NULL,
     pais VARCHAR(100) NOT NULL,
@@ -28,20 +28,22 @@ CREATE TABLE IF NOT EXISTS CANDIDATOS (
     fecha_nacimiento DATE NOT NULL,
     pais_nacimiento VARCHAR(100),
     departamento_nacimiento VARCHAR(100),
-    municipio_nacimiento VARCHAR(100),
+    id_municipio_nacimiento INT,
+    verificada BOOLEAN NOT NULL DEFAULT FALSE,
     observaciones_rrhh TEXT,
     CONSTRAINT fk_candidato_documento FOREIGN KEY (tipo_identificacion)
-        REFERENCES TIPOS_DOCUMENTO(codigo)
+        REFERENCES TIPOS_DOCUMENTO(codigo),
+    CONSTRAINT fk_candidato_municipio FOREIGN KEY (id_municipio_nacimiento)
+        REFERENCES MUNICIPIOS(id_municipio)
 );
 
 CREATE TABLE IF NOT EXISTS DOMICILIOS_CANDIDATOS (
     numero_identificacion_candidato BIGINT PRIMARY KEY,
     direccion VARCHAR(200) NOT NULL,
-    pais VARCHAR(100) NOT NULL,
-    departamento VARCHAR(100) NOT NULL,
-    municipio VARCHAR(100) NOT NULL,
+    id_municipio INT NOT NULL,
     FOREIGN KEY (numero_identificacion_candidato) REFERENCES CANDIDATOS(numero_identificacion)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    FOREIGN KEY (id_municipio) REFERENCES MUNICIPIOS(id_municipio)
 );
 
 CREATE TABLE IF NOT EXISTS LIBRETAS_MILITARES (
@@ -56,12 +58,11 @@ CREATE TABLE IF NOT EXISTS LIBRETAS_MILITARES (
 CREATE TABLE IF NOT EXISTS EMPRESAS (
     nombre VARCHAR(150) PRIMARY KEY,
     tipo_empresa VARCHAR(20) NOT NULL,
-    pais VARCHAR(100),
-    departamento VARCHAR(100),
-    municipio VARCHAR(100),
+    id_municipio INT,
     email_empresa VARCHAR(150),
     telefono VARCHAR(30),
-    direccion VARCHAR(200)
+    direccion VARCHAR(200),
+    FOREIGN KEY (id_municipio) REFERENCES MUNICIPIOS(id_municipio)
 );
 
 CREATE TABLE IF NOT EXISTS EMPLEOS_CANDIDATOS (
@@ -128,6 +129,8 @@ CREATE TABLE IF NOT EXISTS VERIFICADORES (
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
     email VARCHAR(150),
+    usuario VARCHAR(80),
+    contraseña VARCHAR(255),
     telefono VARCHAR(30),
     cargo VARCHAR(80) NOT NULL DEFAULT 'Jefe recursos humanos'
 );
@@ -183,7 +186,7 @@ CREATE PROCEDURE sp_registrar_municipio(
 BEGIN
     INSERT INTO MUNICIPIOS (nombre, departamento, pais)
     VALUES (TRIM(p_nombre), TRIM(p_departamento), TRIM(p_pais))
-    ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);
+    ON DUPLICATE KEY UPDATE id_municipio = LAST_INSERT_ID(id_municipio);
     SET p_id = LAST_INSERT_ID();
 END//
 

@@ -3,10 +3,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
-import BaseDatos.MunicipioDAO;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import BaseDatos.HojaVidaDAO;
+import Modelo.Candidato;
+import Modelo.ClaseLibreta;
+import Modelo.Domicilio;
+import Modelo.LibretaMilitar;
+import Modelo.Nacionalidad;
+import Modelo.Sexo;
+import Modelo.TipoDocumento;
 import java.time.LocalDate;
 import javax.swing.JOptionPane;
 /**
@@ -41,9 +45,7 @@ public class FormularioCandidato extends javax.swing.JFrame {
     }
 
     public void guardarTodoElFormulario() {
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-
+        try {
             String numIdentificacion = jTextField4.getText().trim();
             String tipoDoc = jComboBox1.getSelectedItem().toString();
             String nombres = jTextField3.getText().trim();
@@ -94,53 +96,21 @@ public class FormularioCandidato extends javax.swing.JFrame {
                 throw new IllegalArgumentException("El distrito militar es obligatorio cuando registra libreta.");
             }
 
-            conexion.setAutoCommit(false);
-            try {
-                MunicipioDAO municipios = new MunicipioDAO(conexion);
-                int idMunNac = SelectorMunicipio.resolver(this, municipios, munNac, deptoNac, paisNac);
-                int idMunDom = SelectorMunicipio.resolver(this, municipios, munDom, deptoDom, paisDom);
-
-                String sqlCandidato = "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, manifiesta_juramento, fecha_nacimiento, id_municipio_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                try (PreparedStatement pst = conexion.prepareStatement(sqlCandidato)) {
-                    pst.setLong(1, Long.parseLong(numIdentificacion));
-                    pst.setString(2, tipoDoc);
-                    pst.setString(3, nombres);
-                    pst.setString(4, primerApellido);
-                    pst.setString(5, segundoApellido.isEmpty() ? null : segundoApellido);
-                    pst.setString(6, sexo);
-                    pst.setString(7, nacionalidad);
-                    pst.setString(8, telefono);
-                    pst.setString(9, email);
-                    pst.setBoolean(10, true);
-                    pst.setObject(11, fechaNac);
-                    pst.setInt(12, idMunNac);
-                    pst.executeUpdate();
-                }
-
-                String sqlDomicilio = "INSERT INTO DOMICILIOS_CANDIDATOS (numero_identificacion_candidato, direccion, id_municipio) VALUES (?, ?, ?)";
-                try (PreparedStatement pst = conexion.prepareStatement(sqlDomicilio)) {
-                    pst.setLong(1, Long.parseLong(numIdentificacion));
-                    pst.setString(2, direccion);
-                    pst.setInt(3, idMunDom);
-                    pst.executeUpdate();
-                }
-
-                if (!numLibretaStr.isEmpty() && claseLibreta != null) {
-                    String sqlLibreta = "INSERT INTO LIBRETAS_MILITARES (numero, clase, distrito_militar, numero_identificacion_candidato) VALUES (?, ?, ?, ?)";
-                    try (PreparedStatement pst = conexion.prepareStatement(sqlLibreta)) {
-                        pst.setLong(1, Long.parseLong(numLibretaStr));
-                        pst.setString(2, claseLibreta);
-                        pst.setString(3, distritoMil);
-                        pst.setLong(4, Long.parseLong(numIdentificacion));
-                        pst.executeUpdate();
-                    }
-                }
-
-                conexion.commit();
-            } catch (Exception e) {
-                conexion.rollback();
-                throw e;
+            Candidato candidato = new Candidato(numIdentificacion, TipoDocumento.valueOf(tipoDoc),
+                    nombres, primerApellido, segundoApellido.isEmpty() ? null : segundoApellido,
+                    Sexo.valueOf(sexo), Nacionalidad.valueOf(nacionalidad), fechaNac, email, telefono);
+            candidato.setManifiestaJuramento(true);
+            candidato.setMunicipioNacimiento(munNac);
+            candidato.setDeptoNacimiento(deptoNac);
+            candidato.setPaisNacimiento(paisNac);
+            candidato.setDomicilio(new Domicilio(direccion, paisDom, deptoDom, munDom));
+            if (!numLibretaStr.isEmpty() && claseLibreta != null) {
+                ClaseLibreta clase = "PRIMERA".equals(claseLibreta)
+                        ? ClaseLibreta.PRIMERA_CLASE : ClaseLibreta.SEGUNDA_CLASE;
+                candidato.setLibretaMilitar(new LibretaMilitar(numLibretaStr, clase,
+                        Integer.parseInt(distritoMil)));
             }
+            new HojaVidaDAO().registrarHojaVidaCompleta(candidato);
 
             // sin alerta de éxito: la siguiente ventana se abre directamente
             this.dispose();

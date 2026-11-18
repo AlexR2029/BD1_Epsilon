@@ -3,11 +3,9 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
+import BaseDatos.HojaVidaDAO;
 import Modelo.Idioma;
 import Modelo.NivelCompetencia;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import javax.swing.JOptionPane;
 /**
  *
@@ -70,20 +68,7 @@ private long numeroIdentificacionCandidato;
             // Crear objeto del modelo del equipo
             Idioma idioma = new Idioma(nombreIdioma, habla, lectura, escritura);
 
-            // Conexión y sentencia SQL para IDIOMAS_CANDIDATOS
-            try (Connection conexion = new BaseDatos().getConexion()) {
-                if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
-
-                String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
-                try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-                    pst.setLong(1, numeroIdentificacionCandidato);
-                    pst.setString(2, idioma.getNombreIdioma());
-                    pst.setString(3, idioma.getHabla().name());
-                    pst.setString(4, idioma.getLectura().name());
-                    pst.setString(5, idioma.getEscritura().name());
-                    pst.executeUpdate();
-                }
-            }
+            new HojaVidaDAO().registrarIdioma(numeroIdentificacionCandidato, idioma);
             return true;
 
         } catch (IllegalArgumentException e) {

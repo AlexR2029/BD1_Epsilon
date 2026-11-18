@@ -4,9 +4,7 @@
  */
 package Vista;
 
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import BaseDatos.HojaVidaDAO;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
@@ -44,20 +42,9 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
             return;
         }
 
-        String sql = "INSERT INTO PERSONAL_RRHH (numero_identificacion, nombre_completo, "
-                + "correo_empresarial, usuario, contraseña) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) {
-                return;
-            }
-            try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-                sentencia.setLong(1, Long.parseLong(identificacion));
-                sentencia.setString(2, nombreCompleto);
-                sentencia.setString(3, correo);
-                sentencia.setString(4, usuario);
-                sentencia.setString(5, contrasena); // texto plano, decisión del equipo
-                sentencia.executeUpdate();
-            }
+        try {
+            new HojaVidaDAO().registrarPersonalRRHH(Long.parseLong(identificacion),
+                    nombreCompleto, correo, usuario, contrasena);
             JOptionPane.showMessageDialog(this, "Personal de RRHH registrado correctamente.");
             limpiarCampos();
         } catch (NumberFormatException ex) {

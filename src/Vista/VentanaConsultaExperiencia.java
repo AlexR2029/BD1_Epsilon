@@ -1,10 +1,8 @@
 package Vista;
 
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import BaseDatos.HojaVidaDAO;
+import java.util.List;
+import java.util.Map;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -33,36 +31,16 @@ public class VentanaConsultaExperiencia extends javax.swing.JFrame {
 
         jTable1.setModel(modelo);
 
-        String sql = "SELECT c.numero_identificacion, "
-                + "CONCAT(c.nombre, ' ', c.primer_apellido, ' ', IFNULL(c.segundo_apellido, '')) AS nombre_completo, "
-                + "c.email, c.telefono, "
-                + "ec.nombre_empresa, e.tipo_empresa, ec.cargo, ec.dependencia, "
-                + "ec.fecha_ingreso, ec.fecha_retiro "
-                + "FROM candidatos c "
-                + "LEFT JOIN empleos_candidatos ec ON c.numero_identificacion = ec.numero_identificacion_candidato "
-                + "LEFT JOIN empresas e ON ec.nombre_empresa = e.nombre "
-                + "WHERE c.numero_identificacion = ? ORDER BY ec.fecha_ingreso";
-
-        try (Connection con = new BaseDatos().getConexion()) {
-            if (con == null) return; // BaseDatos ya mostró el error de conexión
-            try (PreparedStatement pst = con.prepareStatement(sql)) {
-                pst.setLong(1, identificacion);
-                try (ResultSet rs = pst.executeQuery()) {
-                    while (rs.next()) {
-                        modelo.addRow(new Object[]{
-                            rs.getLong("numero_identificacion"),
-                            rs.getString("nombre_completo"),
-                            rs.getString("email"),
-                            rs.getString("telefono"),
-                            rs.getString("nombre_empresa"),
-                            rs.getString("tipo_empresa"),
-                            rs.getString("cargo"),
-                            rs.getString("dependencia"),
-                            rs.getDate("fecha_ingreso"),
-                            rs.getDate("fecha_retiro")
-                        });
-                    }
-                }
+        try {
+            List<Map<String, Object>> filas = new HojaVidaDAO().consultarHojaVidaConExperiencia(identificacion);
+            for (Map<String, Object> fila : filas) {
+                String nombreCompleto = fila.get("nombre") + " " + fila.get("primer_apellido")
+                        + (fila.get("segundo_apellido") == null ? "" : " " + fila.get("segundo_apellido"));
+                modelo.addRow(new Object[]{
+                    fila.get("numero_identificacion"), nombreCompleto, "", "",
+                    fila.get("nombre_empresa"), fila.get("tipo_empresa"), fila.get("cargo"),
+                    fila.get("dependencia"), fila.get("fecha_ingreso"), fila.get("fecha_retiro")
+                });
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

@@ -3,10 +3,8 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
+import BaseDatos.HojaVidaDAO;
 import Modelo.EducacionBasica;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import javax.swing.JOptionPane;
 /**
  *
@@ -31,8 +29,7 @@ private long numeroIdentificacionCandidato;
     }
 
 private void guardarEducacionBasica() {
-    try (Connection conexion = new BaseDatos().getConexion()) {
-        if (conexion == null) return; // BaseDatos ya mostró el error de conexión
+    try {
         int gradoAprobado = Integer.parseInt(jComboBox1.getSelectedItem().toString());
         
         String titulo = jTextField3.getText().trim();
@@ -53,17 +50,7 @@ private void guardarEducacionBasica() {
         
         EducacionBasica educacionBasica = new EducacionBasica(titulo, mesGrado, anioGrado, gradoAprobado);
 
-        String sql = "INSERT INTO EDUCACION_BASICA_CANDIDATOS (numero_identificacion_candidato, ultimo_grado_aprobado, titulo_obtenido, mes_grado, anio_grado) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-        pst.setLong(1, numeroIdentificacionCandidato);
-        pst.setInt(2, educacionBasica.getUltimoGradoAprobado());
-        
-        pst.setString(3, educacionBasica.getTituloObtenido());
-        pst.setInt(4, educacionBasica.getMesTerminacion());
-        pst.setInt(5, educacionBasica.getAnioTerminacion());
-        
-        pst.executeUpdate();
-        }
+        new HojaVidaDAO().registrarEducacionBasica(numeroIdentificacionCandidato, educacionBasica);
 
             // sin alerta de éxito: la siguiente ventana se abre directamente
             

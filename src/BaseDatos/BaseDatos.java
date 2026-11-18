@@ -15,7 +15,7 @@ import java.util.Map;
 import javax.swing.JOptionPane;
 
 public class BaseDatos {
-    // Orden: variable de entorno, luego archivo .env (en la raíz del proyecto), luego valor por defecto.
+    // Orden: variable de entorno y luego archivo .env (en la raíz del proyecto).
     private static final Map<String, String> ARCHIVO_ENV = cargarArchivoEnv(".env");
 
     private final String url = env("DB_URL");
@@ -24,7 +24,14 @@ public class BaseDatos {
 
     private static String env(String nombre) {
         String valor = System.getenv(nombre);
-        if (valor == null) valor = ARCHIVO_ENV.get(nombre);
+        if (valor == null || valor.isBlank()) valor = ARCHIVO_ENV.get(nombre);
+        if (valor == null) return "DB_PASSWORD".equals(nombre) ? "" : null;
+        valor = valor.trim();
+        if (valor.length() >= 2
+                && ((valor.startsWith("\"") && valor.endsWith("\""))
+                    || (valor.startsWith("'") && valor.endsWith("'")))) {
+            valor = valor.substring(1, valor.length() - 1).trim();
+        }
         return valor;
     }
 
@@ -46,6 +53,11 @@ public class BaseDatos {
     public Connection getConexion() {
         Connection con = null;
         try {
+            if (url == null || url.isBlank() || user == null || user.isBlank()) {
+                JOptionPane.showMessageDialog(null,
+                        "Error: Configure DB_URL y DB_USER en las variables de entorno o en el archivo .env.");
+                return null;
+            }
             Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(url, user, password);
         } catch (ClassNotFoundException e) {

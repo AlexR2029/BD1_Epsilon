@@ -1,10 +1,8 @@
 package Vista;
 
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import BaseDatos.HojaVidaDAO;
+import java.util.List;
+import java.util.Map;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -34,37 +32,19 @@ public class VentanaConsultaFormacion extends javax.swing.JFrame {
 
         jTable1.setModel(modelo);
 
-        String sql = "SELECT c.numero_identificacion, "
-                + "CONCAT(c.nombre, ' ', c.primer_apellido, ' ', IFNULL(c.segundo_apellido, '')) AS nombre_completo, "
-                + "c.email, c.telefono, "
-                + "eb.ultimo_grado_aprobado, eb.titulo_obtenido AS titulo_basica, eb.anio_grado, "
-                + "es.titulo_obtenido AS titulo_superior, es.modalidad_academica, es.semestres_aprobados, es.graduado "
-                + "FROM candidatos c "
-                + "LEFT JOIN educacion_basica_candidatos eb ON c.numero_identificacion = eb.numero_identificacion_candidato "
-                + "LEFT JOIN educacion_superior_candidatos es ON c.numero_identificacion = es.numero_identificacion_candidato "
-                + "WHERE c.numero_identificacion = ?";
-
-        try (Connection con = new BaseDatos().getConexion()) {
-            if (con == null) return; // BaseDatos ya mostró el error de conexión
-            try (PreparedStatement pst = con.prepareStatement(sql)) {
-                pst.setLong(1, identificacion);
-                try (ResultSet rs = pst.executeQuery()) {
-                    while (rs.next()) {
-                        modelo.addRow(new Object[]{
-                            rs.getLong("numero_identificacion"),
-                            rs.getString("nombre_completo"),
-                            rs.getString("email"),
-                            rs.getString("telefono"),
-                            rs.getObject("ultimo_grado_aprobado"),
-                            rs.getString("titulo_basica"),
-                            rs.getObject("anio_grado"),
-                            rs.getString("titulo_superior"),
-                            rs.getString("modalidad_academica"),
-                            rs.getObject("semestres_aprobados"),
-                            rs.getObject("graduado") == null ? "" : (rs.getBoolean("graduado") ? "Sí" : "No")
-                        });
-                    }
-                }
+        try {
+            List<Map<String, Object>> filas = new HojaVidaDAO().consultarHojaVidaConFormacion(identificacion);
+            for (Map<String, Object> fila : filas) {
+                String nombreCompleto = fila.get("nombre") + " " + fila.get("primer_apellido")
+                        + (fila.get("segundo_apellido") == null ? "" : " " + fila.get("segundo_apellido"));
+                Object graduado = fila.get("graduado");
+                modelo.addRow(new Object[]{
+                    fila.get("numero_identificacion"), nombreCompleto, "", "",
+                    fila.get("ultimo_grado_aprobado"), fila.get("titulo_basico"), fila.get("anio_basico"),
+                    fila.get("titulo_superior"), fila.get("modalidad_academica"),
+                    fila.get("semestres_aprobados"),
+                    graduado == null ? "" : (((Boolean) graduado) ? "Sí" : "No")
+                });
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

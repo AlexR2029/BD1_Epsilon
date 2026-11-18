@@ -61,6 +61,67 @@ public class HojaVidaDAO {
         }
     }
 
+    public void registrarExperienciaLaboral(long identificacionCandidato, ExperienciaLaboral experiencia)
+            throws SQLException {
+        if (experiencia == null) {
+            throw new IllegalArgumentException("La experiencia laboral es obligatoria");
+        }
+        try (Connection conexion = abrir()) {
+            boolean confirmacionAnterior = conexion.getAutoCommit();
+            conexion.setAutoCommit(false);
+            try {
+                insertarExperiencia(conexion, String.valueOf(identificacionCandidato), experiencia);
+                conexion.commit();
+                conexion.setAutoCommit(confirmacionAnterior);
+            } catch (SQLException | RuntimeException ex) {
+                conexion.rollback();
+                conexion.setAutoCommit(confirmacionAnterior);
+                throw ex;
+            }
+        }
+    }
+
+    public void registrarEducacionBasica(long identificacionCandidato, EducacionBasica educacion)
+            throws SQLException {
+        try (Connection conexion = abrir()) {
+            insertarEducacion(conexion, String.valueOf(identificacionCandidato), educacion);
+        }
+    }
+
+    public void registrarEducacionSuperior(long identificacionCandidato, EducacionSuperior educacion)
+            throws SQLException {
+        try (Connection conexion = abrir()) {
+            insertarEducacion(conexion, String.valueOf(identificacionCandidato), educacion);
+        }
+    }
+
+    public void registrarIdioma(long identificacionCandidato, Idioma idioma) throws SQLException {
+        try (Connection conexion = abrir()) {
+            insertarIdioma(conexion, String.valueOf(identificacionCandidato), idioma);
+        }
+    }
+
+    public void registrarExperienciaOcupacion(long identificacionCandidato, String ocupacion,
+            byte anios, byte meses) throws SQLException {
+        try (Connection conexion = abrir()) {
+            ejecutar(conexion, "INSERT INTO EXPERIENCIAS_OCUPACIONES_CANDIDATOS "
+                            + "(numero_identificacion_candidato, ocupacion, anio_experiencia, meses_experiencia) "
+                            + "VALUES (?, ?, ?, ?)",
+                    identificacionCandidato, ocupacion, anios, meses);
+        }
+    }
+
+    public void registrarPersonalRRHH(long identificacion, String nombreCompleto, String correo,
+            String usuario, String contrasena) throws SQLException {
+        String[] nombres = nombreCompleto.trim().split("\\s+", 2);
+        String nombresPersona = nombres[0];
+        String apellidosPersona = nombres.length == 2 ? nombres[1] : "";
+        ejecutar("INSERT INTO VERIFICADORES "
+                        + "(identificacion, nombres, apellidos, email, usuario, contraseña) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                identificacion, nombresPersona, apellidosPersona, correo, usuario, contrasena);
+    }
+
     /**
      * Registra el candidato y todos sus datos dependientes en una sola
      * transacción. Si una inserción falla, no queda una hoja incompleta.
@@ -148,6 +209,71 @@ public class HojaVidaDAO {
                         + "WHERE c.numero_identificacion = ? ORDER BY ec.fecha_ingreso", identificacion);
     }
 
+    public List<Map<String, Object>> consultarCandidatosDetallados() throws SQLException {
+        return consultar("SELECT c.numero_identificacion, c.tipo_identificacion, "
+                        + "CONCAT_WS(' ', c.nombre, c.primer_apellido, c.segundo_apellido) AS nombre_completo, "
+                        + "c.sexo, c.nacionalidad, c.fecha_nacimiento, "
+                        + "CONCAT(m.nombre, ' - ', m.departamento) AS lugar, c.email, c.telefono, "
+                        + "CONCAT(d.direccion, ', ', md.nombre) AS domicilio, "
+                        + "CONCAT(lm.numero, ' (', lm.clase, ')') AS libreta, c.verificada "
+                        + "FROM CANDIDATOS c "
+                        + "JOIN MUNICIPIOS m ON m.id_municipio = c.id_municipio_nacimiento "
+                        + "LEFT JOIN DOMICILIOS_CANDIDATOS d ON d.numero_identificacion_candidato = c.numero_identificacion "
+                        + "LEFT JOIN MUNICIPIOS md ON md.id_municipio = d.id_municipio "
+                        + "LEFT JOIN LIBRETAS_MILITARES lm ON lm.numero_identificacion_candidato = c.numero_identificacion "
+                        + "ORDER BY c.primer_apellido, c.nombre");
+    }
+
+    public List<Map<String, Object>> consultarDetallePersonal(long identificacion) throws SQLException {
+        return consultar("SELECT c.*, m.nombre AS mun_nac, m.departamento AS dep_nac, m.pais AS pais_nac, "
+                        + "d.direccion, md.nombre AS mun_dom, md.departamento AS dep_dom, md.pais AS pais_dom, "
+                        + "lm.numero AS libreta, lm.clase AS clase_libreta, lm.distrito_militar "
+                        + "FROM CANDIDATOS c "
+                        + "JOIN MUNICIPIOS m ON m.id_municipio = c.id_municipio_nacimiento "
+                        + "LEFT JOIN DOMICILIOS_CANDIDATOS d ON d.numero_identificacion_candidato = c.numero_identificacion "
+                        + "LEFT JOIN MUNICIPIOS md ON md.id_municipio = d.id_municipio "
+                        + "LEFT JOIN LIBRETAS_MILITARES lm ON lm.numero_identificacion_candidato = c.numero_identificacion "
+                        + "WHERE c.numero_identificacion = ?", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarEducacionBasica(long identificacion) throws SQLException {
+        return consultar("SELECT * FROM EDUCACION_BASICA_CANDIDATOS "
+                        + "WHERE numero_identificacion_candidato = ?", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarEducacionSuperior(long identificacion) throws SQLException {
+        return consultar("SELECT * FROM EDUCACION_SUPERIOR_CANDIDATOS "
+                        + "WHERE numero_identificacion_candidato = ?", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarIdiomas(long identificacion) throws SQLException {
+        return consultar("SELECT * FROM IDIOMAS_CANDIDATOS "
+                        + "WHERE numero_identificacion_candidato = ?", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarExperienciaLaboralDetallada(long identificacion) throws SQLException {
+        return consultar("SELECT ec.cargo, ec.dependencia, ec.fecha_ingreso, ec.fecha_retiro, "
+                        + "e.nombre, e.tipo_empresa, e.email_empresa, e.telefono, e.direccion AS dir_empresa, "
+                        + "m.nombre AS mun, m.departamento AS dep, m.pais "
+                        + "FROM EMPLEOS_CANDIDATOS ec "
+                        + "JOIN EMPRESAS e ON e.nombre = ec.nombre_empresa "
+                        + "JOIN MUNICIPIOS m ON m.id_municipio = e.id_municipio "
+                        + "WHERE ec.numero_identificacion_candidato = ? ORDER BY ec.fecha_ingreso", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarOcupaciones(long identificacion) throws SQLException {
+        return consultar("SELECT * FROM EXPERIENCIAS_OCUPACIONES_CANDIDATOS "
+                        + "WHERE numero_identificacion_candidato = ?", identificacion);
+    }
+
+    public List<Map<String, Object>> consultarVerificaciones(long identificacion) throws SQLException {
+        return consultar("SELECT v.fecha_verificacion, v.aprobada, v.observaciones, "
+                        + "CONCAT_WS(' ', p.nombres, p.apellidos) AS nombre_completo "
+                        + "FROM VERIFICACIONES_HOJA_VIDA v "
+                        + "JOIN VERIFICADORES p ON p.identificacion = v.identificacion_verificador "
+                        + "WHERE v.numero_identificacion_candidato = ? ORDER BY v.fecha_verificacion", identificacion);
+    }
+
     private void insertarCandidato(Connection conexion, Candidato c) throws SQLException {
         ejecutar(conexion, "INSERT INTO CANDIDATOS (numero_identificacion, tipo_identificacion, nombre, "
                         + "primer_apellido, segundo_apellido, sexo, nacionalidad, telefono, email, "
@@ -218,7 +344,10 @@ public class HojaVidaDAO {
     // Si la empresa ya existe solo se actualiza su tipo, igual que en FormularioExperienciaLaboral
     private void insertarEmpresa(Connection conexion, Empresa e) throws SQLException {
         ejecutar(conexion, "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) "
-                        + "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tipo_empresa = VALUES(tipo_empresa)",
+                        + "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE "
+                        + "tipo_empresa = VALUES(tipo_empresa), email_empresa = VALUES(email_empresa), "
+                        + "telefono = VALUES(telefono), direccion = VALUES(direccion), "
+                        + "id_municipio = VALUES(id_municipio)",
                 e.getNombre(), enumName(e.getTipo()), e.getEmail(), e.getTelefono(), e.getDireccion(),
                 idMunicipio(conexion, e.getMunicipio(), e.getDepartamento(), e.getPais()));
     }

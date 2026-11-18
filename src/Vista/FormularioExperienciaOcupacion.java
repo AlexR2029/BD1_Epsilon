@@ -3,9 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import BaseDatos.HojaVidaDAO;
 import javax.swing.JOptionPane;
 /**
  *
@@ -47,22 +45,8 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
                 throw new IllegalArgumentException("Los años deben ser positivos y los meses deben estar entre 0 y 11.");
             }
 
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-            if (conexion == null) {
-                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
-            }
-
-            String sql = "INSERT INTO EXPERIENCIAS_OCUPACIONES_CANDIDATOS (numero_identificacion_candidato, ocupacion, anio_experiencia, meses_experiencia) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-            pst.setLong(1, numeroIdentificacionCandidato);
-            pst.setString(2, ocupacion);
-            pst.setByte(3, anios);
-            pst.setByte(4, meses);
-
-            pst.executeUpdate();
-            conexion.close();
-            }
+            new HojaVidaDAO().registrarExperienciaOcupacion(
+                    numeroIdentificacionCandidato, ocupacion, anios, meses);
             return true;
 
         } catch (NumberFormatException nfe) {
