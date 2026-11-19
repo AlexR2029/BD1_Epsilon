@@ -6,9 +6,10 @@ package Vista;
 import BaseDatos.HojaVidaDAO;
 import Modelo.Empresa;
 import Modelo.ExperienciaLaboral;
-import Modelo.TipoEmpresa;
+import java.awt.Component;
 import java.time.LocalDate;
 import java.sql.SQLException;
+import javax.swing.GroupLayout;
 import javax.swing.JOptionPane;
 /**
  *
@@ -17,6 +18,7 @@ import javax.swing.JOptionPane;
 public class FormularioExperienciaLaboral extends javax.swing.JFrame {
 
 private long numeroIdentificacionCandidato;
+    private ListaConNuevo<Empresa> listaEmpresa;
 
     public FormularioExperienciaLaboral(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
@@ -27,13 +29,32 @@ private long numeroIdentificacionCandidato;
         jComboBox1.removeAllItems();
         jComboBox1.addItem("PUBLICA");
         jComboBox1.addItem("PRIVADA");
+        configurarEmpresa();
+    }
+
+    /** Cambia el nombre de la empresa por una lista de empresas existentes; sus datos se registran en FormularioEmpresa. */
+    private void configurarEmpresa() {
+        int ancho = getWidth();
+        listaEmpresa = new ListaConNuevo<>(() -> new HojaVidaDAO().listarEmpresas(), FormularioEmpresa::new,
+                Empresa::getNombre, "Nueva");
+        for (Component c : new Component[]{jLabel2, jComboBox1, jLabel3, jTextField2, jLabel4, jTextField3,
+            jLabel5, jTextField4, jLabel6, jTextField5, jLabel7, jTextField6, jLabel18, jTextField15}) {
+            c.setVisible(false);
+        }
+        ((GroupLayout) getContentPane().getLayout()).replace(jTextField1, listaEmpresa);
+
+        // initComponents ya hizo pack() con los campos ocultos: se reajusta el alto y el ancho nunca
+        // queda menor al que necesita el contenido
+        pack();
+        setSize(Math.max(ancho, getWidth()), getHeight());
+        setLocationRelativeTo(null);
     }
 
     private boolean registrarExperiencia() {
-        String nombreEmpresa = jTextField1.getText().trim();
-        if (nombreEmpresa.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "El nombre de la empresa es obligatorio.", "Aviso", JOptionPane.WARNING_MESSAGE);
-            jTextField1.requestFocus();
+        Empresa empresa = listaEmpresa.seleccionado();
+        if (empresa == null) {
+            JOptionPane.showMessageDialog(this, "Elija una empresa. Si no existe, agréguela con el botón Nueva.",
+                    "Aviso", JOptionPane.WARNING_MESSAGE);
             return false;
         }
 
@@ -80,23 +101,6 @@ private long numeroIdentificacionCandidato;
         }
 
         try {
-            TipoEmpresa tipoEmpresa = TipoEmpresa.valueOf(jComboBox1.getSelectedItem().toString());
-            String pais = jTextField2.getText().trim();
-            String departamento = jTextField3.getText().trim();
-            String municipio = jTextField4.getText().trim();
-            String email = jTextField5.getText().trim();
-            String telefono = jTextField6.getText().trim();
-            String direccion = jTextField15.getText().trim();
-
-            if (pais.isEmpty() || departamento.isEmpty() || municipio.isEmpty()
-                    || email.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Complete todos los datos de la empresa.",
-                        "Campos incompletos", JOptionPane.WARNING_MESSAGE);
-                return false;
-            }
-
-            Empresa empresa = new Empresa(nombreEmpresa, tipoEmpresa, pais, departamento, municipio, email, telefono, direccion);
-
             String cargo = jTextField13.getText().trim();
             String dependencia = jTextField14.getText().trim();
             if (cargo.isEmpty() || dependencia.isEmpty()) {
@@ -523,8 +527,17 @@ private long numeroIdentificacionCandidato;
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    /** Hay algo escrito de la experiencia (fechas, cargo o dependencia); si no, "Continuar" solo avanza. */
+    private boolean hayDatosDeExperiencia() {
+        for (javax.swing.JTextField c : new javax.swing.JTextField[]{jTextField7, jTextField8, jTextField9,
+            jTextField10, jTextField11, jTextField12, jTextField13, jTextField14}) {
+            if (!c.getText().trim().isEmpty()) return true;
+        }
+        return false;
+    }
+
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        if (!jTextField1.getText().trim().isEmpty()) {
+        if (hayDatosDeExperiencia()) {
             if (registrarExperiencia()) {
                 // sin alerta de éxito: la siguiente ventana se abre directamente
                 this.dispose();

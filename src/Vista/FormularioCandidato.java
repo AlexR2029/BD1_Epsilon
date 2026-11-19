@@ -4,6 +4,7 @@
  */
 package Vista;
 import BaseDatos.HojaVidaDAO;
+import BaseDatos.MunicipioDAO;
 import Modelo.Candidato;
 import Modelo.ClaseLibreta;
 import Modelo.Domicilio;
@@ -11,13 +12,18 @@ import Modelo.LibretaMilitar;
 import Modelo.Nacionalidad;
 import Modelo.Sexo;
 import Modelo.TipoDocumento;
+import java.awt.Component;
 import java.time.LocalDate;
+import javax.swing.GroupLayout;
 import javax.swing.JOptionPane;
 /**
  *
  * @author pablo
  */
 public class FormularioCandidato extends javax.swing.JFrame {
+
+    private ListaConNuevo<MunicipioDAO.Municipio> listaMunNac;
+    private ListaConNuevo<MunicipioDAO.Municipio> listaMunDom;
 
     public FormularioCandidato() {
         initComponents();
@@ -42,6 +48,50 @@ public class FormularioCandidato extends javax.swing.JFrame {
         Militar.add(jRadioButton7);
         Militar.add(jRadioButton8);
 
+        configurarMunicipios();
+    }
+
+    private ListaConNuevo<MunicipioDAO.Municipio> nuevaListaMunicipios() {
+        return new ListaConNuevo<>(() -> new MunicipioDAO().listar(), FormularioMunicipio::new,
+                MunicipioDAO.Municipio::toString, "Nuevo");
+    }
+
+    /** Cambia los campos de texto de país, departamento y municipio por una lista de municipios existentes. */
+    private void configurarMunicipios() {
+        int ancho = getWidth();
+        listaMunNac = nuevaListaMunicipios();
+        listaMunDom = nuevaListaMunicipios();
+        // si se agrega un municipio desde una lista, la otra también debe mostrarlo
+        listaMunNac.despuesDeAgregar(() -> listaMunDom.recargar(false));
+        listaMunDom.despuesDeAgregar(() -> listaMunNac.recargar(false));
+
+        // Nacimiento: el municipio ya trae su departamento y país
+        for (Component c : new Component[]{jLabel12, jTextField9, jLabel13, jTextField10}) {
+            c.setVisible(false);
+        }
+        ((GroupLayout) jPanel6.getLayout()).replace(jTextField11, listaMunNac);
+
+        // Domicilio: se rehace el panel porque la fila Municipio/Teléfono es muy angosta para la lista
+        jPanel1.removeAll();
+        GroupLayout layout = new GroupLayout(jPanel1);
+        jPanel1.setLayout(layout);
+        GroupLayout.ParallelGroup horizontal = layout.createParallelGroup();
+        GroupLayout.SequentialGroup vertical = layout.createSequentialGroup().addContainerGap();
+        for (Component c : new Component[]{jLabel15, jTextField12, jLabel18, listaMunDom,
+            jLabel19, jTextField16, jLabel20, jTextField17}) {
+            horizontal.addComponent(c);
+            vertical.addComponent(c, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED);
+        }
+        layout.setHorizontalGroup(layout.createSequentialGroup().addContainerGap().addGroup(horizontal).addContainerGap());
+        layout.setVerticalGroup(vertical.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE));
+
+        // initComponents ya hizo pack() con los campos ocultos: se reajusta el alto y el ancho nunca
+        // queda menor al que necesita el contenido
+        pack();
+        setSize(Math.max(ancho, getWidth()), getHeight());
+        setMinimumSize(getSize()); // más angosta que esto los campos quedan cortados
+        setLocationRelativeTo(null);
     }
 
     public void guardarTodoElFormulario() {
@@ -69,31 +119,24 @@ public class FormularioCandidato extends javax.swing.JFrame {
                     Integer.parseInt(jTextField7.getText().trim()),
                     Integer.parseInt(jTextField6.getText().trim()));
 
-            String paisNac = jTextField9.getText().trim();
-            String deptoNac = jTextField10.getText().trim();
-            String munNac = jTextField11.getText().trim();
+            MunicipioDAO.Municipio nacimiento = listaMunNac.seleccionado();
+            MunicipioDAO.Municipio domicilio = listaMunDom.seleccionado();
 
             String direccion = jTextField12.getText().trim();
-            String paisDom = jTextField13.getText().trim();
-            String deptoDom = jTextField14.getText().trim();
-            String munDom = jTextField15.getText().trim();
             String telefono = jTextField16.getText().trim();
             String email = jTextField17.getText().trim();
 
-            if (paisNac.isEmpty() || deptoNac.isEmpty() || munNac.isEmpty()
-                    || direccion.isEmpty() || paisDom.isEmpty() || deptoDom.isEmpty()
-                    || munDom.isEmpty() || telefono.isEmpty() || email.isEmpty()) {
+            if (nacimiento == null || domicilio == null
+                    || direccion.isEmpty() || telefono.isEmpty() || email.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                        "Complete todos los datos de nacimiento, domicilio y contacto.",
+                        "Elija el municipio de nacimiento y el de domicilio, y complete dirección y contacto. "
+                        + "Si no existe, agréguelo con el botón Nuevo.",
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (LimitesTexto.excede(this, "Nombres", nombres, 40, "Primer apellido", primerApellido, 20,
                     "Segundo apellido", segundoApellido, 20, "Teléfono", telefono, 12, "Correo", email, 50,
-                    "Dirección", direccion, 150, "País de nacimiento", paisNac, 50,
-                    "Departamento de nacimiento", deptoNac, 50, "Municipio de nacimiento", munNac, 50,
-                    "País del domicilio", paisDom, 50, "Departamento del domicilio", deptoDom, 50,
-                    "Municipio del domicilio", munDom, 50)) {
+                    "Dirección", direccion, 150)) {
                 return;
             }
 
@@ -111,10 +154,10 @@ public class FormularioCandidato extends javax.swing.JFrame {
                     nombres, primerApellido, segundoApellido.isEmpty() ? null : segundoApellido,
                     Sexo.valueOf(sexo), Nacionalidad.valueOf(nacionalidad), fechaNac, email, telefono);
             candidato.setManifiestaJuramento(true);
-            candidato.setMunicipioNacimiento(munNac);
-            candidato.setDeptoNacimiento(deptoNac);
-            candidato.setPaisNacimiento(paisNac);
-            candidato.setDomicilio(new Domicilio(direccion, paisDom, deptoDom, munDom));
+            candidato.setMunicipioNacimiento(nacimiento.nombre());
+            candidato.setDeptoNacimiento(nacimiento.departamento());
+            candidato.setPaisNacimiento(nacimiento.pais());
+            candidato.setDomicilio(new Domicilio(direccion, domicilio.pais(), domicilio.departamento(), domicilio.nombre()));
             if (!numLibretaStr.isEmpty() && claseLibreta != null) {
                 ClaseLibreta clase = "PRIMERA".equals(claseLibreta)
                         ? ClaseLibreta.PRIMERA_CLASE : ClaseLibreta.SEGUNDA_CLASE;
