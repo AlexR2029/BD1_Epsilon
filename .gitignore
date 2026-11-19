@@ -1,8 +1,9 @@
 nbproject/private/
 build-impl.xml
 genfiles.properties
+project.properties
+project.xml
 build/
-
 
 dist/
 
