@@ -1,14 +1,14 @@
 package Vista;
 
-import BaseDatos.BaseDatos;
+import BaseDatos.HojaVidaDAO;
 import BaseDatos.MunicipioDAO;
+import Modelo.Empresa;
+import Modelo.TipoEmpresa;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -78,9 +78,8 @@ public class FormularioEmpresa extends JFrame {
 
     private void cargarMunicipios() {
         cbMunicipio.removeAllItems();
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-            for (MunicipioDAO.Municipio m : new MunicipioDAO(conexion).listar()) {
+        try {
+            for (MunicipioDAO.Municipio m : new MunicipioDAO().listar()) {
                 cbMunicipio.addItem(m); // se muestra "Cali - Valle del Cauca"
             }
         } catch (Exception e) {
@@ -127,18 +126,10 @@ public class FormularioEmpresa extends JFrame {
             return;
         }
 
-        String sql = "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-                pst.setString(1, nombre);
-                pst.setString(2, cbTipo.getSelectedItem().toString());
-                pst.setString(3, email);
-                pst.setString(4, telefono);
-                pst.setString(5, direccion);
-                pst.setInt(6, municipio.id());
-                pst.executeUpdate();
-            }
+        try {
+            Empresa empresa = new Empresa(nombre, TipoEmpresa.valueOf(cbTipo.getSelectedItem().toString()),
+                    municipio.pais(), municipio.departamento(), municipio.nombre(), email, telefono, direccion);
+            new HojaVidaDAO().registrarEmpresa(empresa);
             JOptionPane.showMessageDialog(this, "Empresa registrada.");
             limpiar();
         } catch (SQLException e) {

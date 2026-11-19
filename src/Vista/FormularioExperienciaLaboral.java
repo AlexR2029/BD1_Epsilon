@@ -3,14 +3,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
-import BaseDatos.MunicipioDAO;
+import BaseDatos.HojaVidaDAO;
 import Modelo.Empresa;
 import Modelo.ExperienciaLaboral;
 import Modelo.TipoEmpresa;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
+import java.sql.SQLException;
 import javax.swing.JOptionPane;
 /**
  *
@@ -48,11 +46,11 @@ private long numeroIdentificacionCandidato;
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-            // Fecha de ingreso: día = 7, mes = 8, año = 9
-            fechaIngreso = LocalDate.of(entero(jTextField9, "año de ingreso"),
-                    entero(jTextField8, "mes de ingreso"), entero(jTextField7, "día de ingreso"));
+            int diaIngreso = Integer.parseInt(jTextField7.getText().trim());
+            int mesIngreso = Integer.parseInt(jTextField8.getText().trim());
+            int anioIngreso = Integer.parseInt(jTextField9.getText().trim());
+            fechaIngreso = LocalDate.of(anioIngreso, mesIngreso, diaIngreso);
 
-            // Fecha de retiro: día = 10, mes = 11, año = 12
             boolean hayRetiro = !jTextField10.getText().trim().isEmpty() || !jTextField11.getText().trim().isEmpty()
                     || !jTextField12.getText().trim().isEmpty();
             boolean retiroCompleto = !jTextField10.getText().trim().isEmpty() && !jTextField11.getText().trim().isEmpty()
@@ -63,32 +61,32 @@ private long numeroIdentificacionCandidato;
                 return false;
             }
             if (retiroCompleto) {
-                fechaRetiro = LocalDate.of(entero(jTextField12, "año de retiro"),
-                        entero(jTextField11, "mes de retiro"), entero(jTextField10, "día de retiro"));
+                int diaRetiro = Integer.parseInt(jTextField10.getText().trim());
+                int mesRetiro = Integer.parseInt(jTextField11.getText().trim());
+                int anioRetiro = Integer.parseInt(jTextField12.getText().trim());
+                fechaRetiro = LocalDate.of(anioRetiro, mesRetiro, diaRetiro);
             }
             if (fechaRetiro != null && fechaRetiro.isBefore(fechaIngreso)) {
                 JOptionPane.showMessageDialog(this, "La fecha de retiro no puede ser anterior a la de ingreso.", "Fechas inválidas", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
         } catch (NumberFormatException nfe) {
-            nfe.printStackTrace();
-            JOptionPane.showMessageDialog(this, nfe.getMessage(), "Error de Formato", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Las fechas deben contener solo números válidos.",
+                    "Error de Formato", JOptionPane.WARNING_MESSAGE);
             return false;
         } catch (java.time.DateTimeException dte) {
             JOptionPane.showMessageDialog(this, "La fecha no es válida: " + dte.getMessage(), "Fecha inválida", JOptionPane.WARNING_MESSAGE);
             return false;
         }
 
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return false; // BaseDatos ya mostró el error de conexión
-
+        try {
             TipoEmpresa tipoEmpresa = TipoEmpresa.valueOf(jComboBox1.getSelectedItem().toString());
             String pais = jTextField2.getText().trim();
             String departamento = jTextField3.getText().trim();
             String municipio = jTextField4.getText().trim();
             String email = jTextField5.getText().trim();
             String telefono = jTextField6.getText().trim();
-            String direccion = jTextField15.getText().trim(); // dirección = 15 según la pantalla
+            String direccion = jTextField15.getText().trim();
 
             if (pais.isEmpty() || departamento.isEmpty() || municipio.isEmpty()
                     || email.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
@@ -99,7 +97,6 @@ private long numeroIdentificacionCandidato;
 
             Empresa empresa = new Empresa(nombreEmpresa, tipoEmpresa, pais, departamento, municipio, email, telefono, direccion);
 
-            // Campos según la pantalla: cargo = 13, dependencia = 14
             String cargo = jTextField13.getText().trim();
             String dependencia = jTextField14.getText().trim();
             if (cargo.isEmpty() || dependencia.isEmpty()) {
@@ -107,62 +104,16 @@ private long numeroIdentificacionCandidato;
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
-            if (LimitesTexto.excede(this, "Empresa", nombreEmpresa, 20, "País", pais, 50,
-                    "Departamento", departamento, 50, "Municipio", municipio, 50, "Correo", email, 50,
-                    "Teléfono", telefono, 12, "Dirección", direccion, 30, "Cargo", cargo, 50,
-                    "Dependencia", dependencia, 20)) {
-                return false;
-            }
-            if (!email.contains("@")) {
-                JOptionPane.showMessageDialog(this, "El correo de la empresa no es válido.", "Datos inválidos", JOptionPane.WARNING_MESSAGE);
-                return false;
-            }
 
             ExperienciaLaboral experiencia = new ExperienciaLaboral(empresa, cargo, dependencia, fechaIngreso, fechaRetiro);
-
-            conexion.setAutoCommit(false);
-            try {
-                int idMunicipio = SelectorMunicipio.resolver(this, new MunicipioDAO(conexion),
-                        empresa.getMunicipio(), empresa.getDepartamento(), empresa.getPais());
-
-                String sqlEmpresa = "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tipo_empresa = VALUES(tipo_empresa)";
-                try (PreparedStatement pst = conexion.prepareStatement(sqlEmpresa)) {
-                    pst.setString(1, empresa.getNombre());
-                    pst.setString(2, empresa.getTipo().name());
-                    pst.setString(3, empresa.getEmail());
-                    pst.setString(4, empresa.getTelefono());
-                    pst.setString(5, empresa.getDireccion());
-                    pst.setInt(6, idMunicipio);
-                    pst.executeUpdate();
-                }
-
-                String sqlEmpleo = "INSERT INTO EMPLEOS_CANDIDATOS (numero_identificacion_candidato, nombre_empresa, cargo, dependencia, fecha_ingreso, fecha_retiro) VALUES (?, ?, ?, ?, ?, ?)";
-                try (PreparedStatement pst = conexion.prepareStatement(sqlEmpleo)) {
-                    pst.setLong(1, numeroIdentificacionCandidato);
-                    pst.setString(2, empresa.getNombre());
-                    pst.setString(3, experiencia.getCargo());
-                    pst.setString(4, experiencia.getDependencia());
-                    pst.setDate(5, java.sql.Date.valueOf(experiencia.getFechaIngreso()));
-                    if (experiencia.getFechaRetiro() != null) {
-                        pst.setDate(6, java.sql.Date.valueOf(experiencia.getFechaRetiro()));
-                    } else {
-                        pst.setNull(6, java.sql.Types.DATE);
-                    }
-                    pst.executeUpdate();
-                }
-
-                conexion.commit();
-            } catch (Exception e) {
-                conexion.rollback();
-                throw e;
-            }
+            new HojaVidaDAO().registrarExperienciaLaboral(numeroIdentificacionCandidato, experiencia);
             return true;
 
-        } catch (NumberFormatException nfe) {
-            nfe.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Dato numérico inválido: " + nfe.getMessage(), "Error de Formato", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, "Datos inválidos: " + e.getMessage(),
+                    "Validación", JOptionPane.WARNING_MESSAGE);
             return false;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al guardar la experiencia laboral: " + e.getMessage(), "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
             return false;
         }

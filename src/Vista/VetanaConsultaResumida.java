@@ -5,11 +5,9 @@
 
 package Vista;
 
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import BaseDatos.HojaVidaDAO;
+import java.util.List;
+import java.util.Map;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -36,25 +34,20 @@ public class VetanaConsultaResumida extends javax.swing.JFrame {
         modelo.addColumn("Teléfono");
 
         try {
-            BaseDatos bd = new BaseDatos();
-            Connection con = bd.getConexion();
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT numero_identificacion, nombre, "
-                    + "CONCAT(primer_apellido, ' ', IFNULL(segundo_apellido, '')) AS apellidos, "
-                    + "email, telefono FROM CANDIDATOS ORDER BY primer_apellido, nombre");
-
-            while (rs.next()) {
+            List<Map<String, Object>> filas = new HojaVidaDAO().consultarHojasVidaResumidas();
+            for (Map<String, Object> filaDb : filas) {
                 Object[] fila = new Object[5];
-                fila[0] = rs.getLong("numero_identificacion");
-                fila[1] = rs.getString("nombre");
-                fila[2] = rs.getString("apellidos");
-                fila[3] = rs.getString("email");
-                fila[4] = rs.getString("telefono");
+                fila[0] = filaDb.get("numero_identificacion");
+                fila[1] = filaDb.get("nombre");
+                String segundoApellido = filaDb.get("segundo_apellido") == null
+                        ? "" : " " + filaDb.get("segundo_apellido");
+                fila[2] = filaDb.get("primer_apellido") + segundoApellido;
+                fila[3] = filaDb.get("email");
+                fila[4] = filaDb.get("telefono");
                 modelo.addRow(fila);
             }
 
             jTable1.setModel(modelo);
-            con.close();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
