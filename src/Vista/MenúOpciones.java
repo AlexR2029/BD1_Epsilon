@@ -23,8 +23,8 @@ public class MenúOpciones extends javax.swing.JFrame {
         initComponents();
         jButton4.addActionListener(e -> abrirHojaVida());
         jButton5.addActionListener(e -> abrirVerificacion());
-        jButton8.addActionListener(e -> abrirConsulta("Consultar formación académica", VentanaConsultaFormacion::new));
-        jButton9.addActionListener(e -> abrirConsulta("Consultar experiencia laboral", VentanaConsultaExperiencia::new));
+        jButton8.addActionListener(e -> abrirConsulta("Consultar formación académica", VentanaConsultaDetallada::formacion));
+        jButton9.addActionListener(e -> abrirConsulta("Consultar experiencia laboral", VentanaConsultaDetallada::experiencia));
     }
 
     /**
@@ -73,6 +73,11 @@ public class MenúOpciones extends javax.swing.JFrame {
         });
 
         jButton4.setText("Registrar una hoja de vida completa");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
 
         jButton5.setText("Registrar la verificación de una hoja de vida");
         jButton5.addActionListener(new java.awt.event.ActionListener() {
@@ -170,6 +175,10 @@ public class MenúOpciones extends javax.swing.JFrame {
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton5ActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButton4ActionPerformed
 
     private void abrirConsulta(String titulo, java.util.function.LongFunction<javax.swing.JFrame> crearVentana) {
         String texto = JOptionPane.showInputDialog(this, "Identificación del candidato:", titulo, JOptionPane.QUESTION_MESSAGE);

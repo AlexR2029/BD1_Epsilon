@@ -10,6 +10,7 @@ import Modelo.Empresa;
 import Modelo.ExperienciaLaboral;
 import Modelo.Idioma;
 import Modelo.LibretaMilitar;
+import Modelo.TipoEmpresa;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -28,6 +29,11 @@ import java.util.Map;
  * usada desde pruebas, servicios o nuevas vistas de NetBeans.</p>
  */
 public class HojaVidaDAO {
+
+    /** Última decisión de verificación del candidato (1 aprobada, 0 no aprobada o sin verificar). */
+    private static final String SQL_VERIFICADA = "COALESCE((SELECT v.aprobada FROM VERIFICACIONES_HOJA_VIDA v "
+            + "WHERE v.numero_identificacion_candidato = c.numero_identificacion "
+            + "ORDER BY v.fecha_verificacion DESC, v.id DESC LIMIT 1), 0) AS verificada";
 
     private final BaseDatos baseDatos;
 
@@ -59,6 +65,19 @@ public class HojaVidaDAO {
         try (Connection conexion = abrir()) {
             insertarEmpresa(conexion, empresa);
         }
+    }
+
+    /** Todas las empresas registradas, ordenadas por nombre (para llenar listas desplegables). */
+    public List<Empresa> listarEmpresas() throws SQLException {
+        List<Empresa> empresas = new ArrayList<>();
+        for (Map<String, Object> f : consultar("SELECT e.nombre, e.tipo_empresa, e.email_empresa, e.telefono, "
+                + "e.direccion, m.nombre AS municipio, m.departamento, m.pais FROM EMPRESAS e "
+                + "JOIN MUNICIPIOS m ON m.id_municipio = e.id_municipio ORDER BY e.nombre")) {
+            empresas.add(new Empresa((String) f.get("nombre"), TipoEmpresa.valueOf((String) f.get("tipo_empresa")),
+                    (String) f.get("pais"), (String) f.get("departamento"), (String) f.get("municipio"),
+                    (String) f.get("email_empresa"), (String) f.get("telefono"), (String) f.get("direccion")));
+        }
+        return empresas;
     }
 
     public void registrarExperienciaLaboral(long identificacionCandidato, ExperienciaLaboral experiencia)
@@ -113,13 +132,10 @@ public class HojaVidaDAO {
 
     public void registrarPersonalRRHH(long identificacion, String nombreCompleto, String correo,
             String usuario, String contrasena) throws SQLException {
-        String[] nombres = nombreCompleto.trim().split("\\s+", 2);
-        String nombresPersona = nombres[0];
-        String apellidosPersona = nombres.length == 2 ? nombres[1] : "";
-        ejecutar("INSERT INTO VERIFICADORES "
-                        + "(identificacion, nombres, apellidos, email, usuario, contraseña) "
-                        + "VALUES (?, ?, ?, ?, ?, ?)",
-                identificacion, nombresPersona, apellidosPersona, correo, usuario, contrasena);
+        ejecutar("INSERT INTO PERSONAL_RRHH "
+                        + "(numero_identificacion, nombre_completo, correo_empresarial, usuario, contraseña) "
+                        + "VALUES (?, ?, ?, ?, ?)",
+                identificacion, nombreCompleto.trim(), correo, usuario, contrasena);
     }
 
     /**
@@ -154,24 +170,13 @@ public class HojaVidaDAO {
         }
     }
 
-    /** Guarda la verificación y deja candidatos.verificada igual a la última decisión, en una sola transacción. */
+    /** Guarda una verificación nueva en VERIFICACIONES_HOJA_VIDA. El estado "verificada" se calcula al consultar. */
     public void registrarVerificacion(long identificacionCandidato, long identificacionVerificador,
             boolean aprobada, String observaciones) throws SQLException {
-        try (Connection conexion = abrir()) {
-            conexion.setAutoCommit(false);
-            try {
-                ejecutar(conexion, "INSERT INTO VERIFICACIONES_HOJA_VIDA "
-                                + "(numero_identificacion_candidato, identificacion_verificador, aprobada, observaciones) "
-                                + "VALUES (?, ?, ?, ?)",
-                        identificacionCandidato, identificacionVerificador, aprobada, observaciones);
-                ejecutar(conexion, "UPDATE CANDIDATOS SET verificada = ? WHERE numero_identificacion = ?",
-                        aprobada, identificacionCandidato);
-                conexion.commit();
-            } catch (SQLException | RuntimeException ex) {
-                conexion.rollback();
-                throw ex;
-            }
-        }
+        ejecutar("INSERT INTO VERIFICACIONES_HOJA_VIDA "
+                        + "(numero_identificacion_candidato, identificacion_verificador, aprobada, observaciones) "
+                        + "VALUES (?, ?, ?, ?)",
+                identificacionCandidato, identificacionVerificador, aprobada, observaciones);
     }
 
     /** Devuelve la fila (numero_identificacion y nombre_completo) si usuario y contraseña coinciden; si no, null. */
@@ -204,39 +209,13 @@ public class HojaVidaDAO {
                         + "ORDER BY c.primer_apellido, c.nombre");
     }
 
-    public List<Map<String, Object>> consultarHojaVidaConFormacion(long identificacion) throws SQLException {
-        return consultar("SELECT c.numero_identificacion, c.nombre, c.primer_apellido, "
-                        + "c.segundo_apellido, eb.ultimo_grado_aprobado, eb.titulo_obtenido AS titulo_basico, "
-                        + "eb.mes_grado AS mes_basico, eb.anio_grado AS anio_basico, "
-                        + "es.titulo_obtenido AS titulo_superior, es.modalidad_academica, "
-                        + "es.semestres_aprobados, es.graduado, es.numero_tarjeta_profesional, "
-                        + "es.mes_terminacion, es.anio_terminacion "
-                        + "FROM CANDIDATOS c LEFT JOIN EDUCACION_BASICA_CANDIDATOS eb "
-                        + "ON eb.numero_identificacion_candidato = c.numero_identificacion "
-                        + "LEFT JOIN EDUCACION_SUPERIOR_CANDIDATOS es "
-                        + "ON es.numero_identificacion_candidato = c.numero_identificacion "
-                        + "WHERE c.numero_identificacion = ?", identificacion);
-    }
-
-    public List<Map<String, Object>> consultarHojaVidaConExperiencia(long identificacion) throws SQLException {
-        return consultar("SELECT c.numero_identificacion, c.nombre, c.primer_apellido, "
-                        + "c.segundo_apellido, ec.nombre_empresa, e.tipo_empresa, m.pais, "
-                        + "m.departamento, m.nombre AS municipio, e.email_empresa, e.telefono, e.direccion, "
-                        + "ec.cargo, ec.dependencia, ec.fecha_ingreso, ec.fecha_retiro "
-                        + "FROM CANDIDATOS c LEFT JOIN EMPLEOS_CANDIDATOS ec "
-                        + "ON ec.numero_identificacion_candidato = c.numero_identificacion "
-                        + "LEFT JOIN EMPRESAS e ON e.nombre = ec.nombre_empresa "
-                        + "LEFT JOIN MUNICIPIOS m ON m.id_municipio = e.id_municipio "
-                        + "WHERE c.numero_identificacion = ? ORDER BY ec.fecha_ingreso", identificacion);
-    }
-
     public List<Map<String, Object>> consultarCandidatosDetallados() throws SQLException {
         return consultar("SELECT c.numero_identificacion, c.tipo_identificacion, "
                         + "CONCAT_WS(' ', c.nombre, c.primer_apellido, c.segundo_apellido) AS nombre_completo, "
                         + "c.sexo, c.nacionalidad, c.fecha_nacimiento, "
                         + "CONCAT(m.nombre, ' - ', m.departamento) AS lugar, c.email, c.telefono, "
                         + "CONCAT(d.direccion, ', ', md.nombre) AS domicilio, "
-                        + "CONCAT(lm.numero, ' (', lm.clase, ')') AS libreta, c.verificada "
+                        + "CONCAT(lm.numero, ' (', lm.clase, ')') AS libreta, " + SQL_VERIFICADA + " "
                         + "FROM CANDIDATOS c "
                         + "JOIN MUNICIPIOS m ON m.id_municipio = c.id_municipio_nacimiento "
                         + "LEFT JOIN DOMICILIOS_CANDIDATOS d ON d.numero_identificacion_candidato = c.numero_identificacion "
@@ -248,7 +227,9 @@ public class HojaVidaDAO {
     public List<Map<String, Object>> consultarDetallePersonal(long identificacion) throws SQLException {
         return consultar("SELECT c.*, m.nombre AS mun_nac, m.departamento AS dep_nac, m.pais AS pais_nac, "
                         + "d.direccion, md.nombre AS mun_dom, md.departamento AS dep_dom, md.pais AS pais_dom, "
-                        + "lm.numero AS libreta, lm.clase AS clase_libreta, lm.distrito_militar "
+                        + "lm.numero AS libreta, lm.clase AS clase_libreta, lm.distrito_militar, "
+                        // Va después de c.*: al mapear, la última columna con el mismo nombre gana
+                        + SQL_VERIFICADA + " "
                         + "FROM CANDIDATOS c "
                         + "JOIN MUNICIPIOS m ON m.id_municipio = c.id_municipio_nacimiento "
                         + "LEFT JOIN DOMICILIOS_CANDIDATOS d ON d.numero_identificacion_candidato = c.numero_identificacion "
@@ -289,9 +270,9 @@ public class HojaVidaDAO {
 
     public List<Map<String, Object>> consultarVerificaciones(long identificacion) throws SQLException {
         return consultar("SELECT v.fecha_verificacion, v.aprobada, v.observaciones, "
-                        + "CONCAT_WS(' ', p.nombres, p.apellidos) AS nombre_completo "
+                        + "p.nombre_completo "
                         + "FROM VERIFICACIONES_HOJA_VIDA v "
-                        + "JOIN VERIFICADORES p ON p.identificacion = v.identificacion_verificador "
+                        + "JOIN PERSONAL_RRHH p ON p.numero_identificacion = v.identificacion_verificador "
                         + "WHERE v.numero_identificacion_candidato = ? ORDER BY v.fecha_verificacion", identificacion);
     }
 
