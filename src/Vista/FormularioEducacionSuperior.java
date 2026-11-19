@@ -45,6 +45,9 @@ public class FormularioEducacionSuperior extends javax.swing.JFrame {
                 jTextField1.requestFocus();
                 return false;
             }
+            if (LimitesTexto.excede(this, "Título", titulo, 40)) {
+                return false;
+            }
 
             String modalidadStr = jComboBox1.getSelectedItem().toString();
             ModalidadAcademica modalidad = ModalidadAcademica.valueOf(modalidadStr);

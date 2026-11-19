@@ -119,6 +119,16 @@ private long numeroIdentificacionCandidato;
         }
     }
 
+    /** Lee un entero de un campo: ignora espacios (también el no separable) y caracteres invisibles. */
+    private static int entero(javax.swing.JTextField campo, String nombre) {
+        String texto = campo.getText().replaceAll("[\\p{Z}\\p{C}]", "");
+        try {
+            return Integer.parseInt(texto);
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException("El campo " + nombre + " debe ser un número entero y tiene \"" + campo.getText() + "\".");
+        }
+    }
+
     private void limpiarFormulario() {
         jTextField1.setText("");
         jTextField2.setText("");

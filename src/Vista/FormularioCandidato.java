@@ -88,12 +88,23 @@ public class FormularioCandidato extends javax.swing.JFrame {
                         "Campos incompletos", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            if (LimitesTexto.excede(this, "Nombres", nombres, 40, "Primer apellido", primerApellido, 20,
+                    "Segundo apellido", segundoApellido, 20, "Teléfono", telefono, 12, "Correo", email, 50,
+                    "Dirección", direccion, 150, "País de nacimiento", paisNac, 50,
+                    "Departamento de nacimiento", deptoNac, 50, "Municipio de nacimiento", munNac, 50,
+                    "País del domicilio", paisDom, 50, "Departamento del domicilio", deptoDom, 50,
+                    "Municipio del domicilio", munDom, 50)) {
+                return;
+            }
 
             String numLibretaStr = jTextField18.getText().trim();
             String distritoMil = jTextField19.getText().trim();
             String claseLibreta = jRadioButton5.isSelected() ? "PRIMERA" : (jRadioButton6.isSelected() ? "SEGUNDA" : null);
             if (!numLibretaStr.isEmpty() && claseLibreta != null && distritoMil.isEmpty()) {
                 throw new IllegalArgumentException("El distrito militar es obligatorio cuando registra libreta.");
+            }
+            if (LimitesTexto.excede(this, "Distrito militar", distritoMil, 20)) {
+                return;
             }
 
             Candidato candidato = new Candidato(numIdentificacion, TipoDocumento.valueOf(tipoDoc),
@@ -118,6 +129,8 @@ public class FormularioCandidato extends javax.swing.JFrame {
 
         } catch (NumberFormatException nfe) {
             JOptionPane.showMessageDialog(this, "Por favor, verifica que los campos numéricos (Identificación, Teléfono, Fechas) contengan solo números.", "Error de Formato", JOptionPane.WARNING_MESSAGE);
+        } catch (java.time.DateTimeException dte) {
+            JOptionPane.showMessageDialog(this, "La fecha de nacimiento no es válida: " + dte.getMessage(), "Fecha inválida", JOptionPane.WARNING_MESSAGE);
         } catch (IllegalArgumentException iae) {
             JOptionPane.showMessageDialog(this, iae.getMessage(), "Campos incompletos", JOptionPane.WARNING_MESSAGE);
         } catch (Exception e) {

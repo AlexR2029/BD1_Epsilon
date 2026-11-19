@@ -30,6 +30,9 @@ public class FormularioExperienciaOcupacion extends javax.swing.JFrame {
                 jTextField1.requestFocus();
                 return false;
             }
+            if (LimitesTexto.excede(this, "Ocupación", ocupacion, 20)) {
+                return false;
+            }
 
             String aniosStr = jTextField2.getText().trim();
             String mesesStr = jTextField3.getText().trim();

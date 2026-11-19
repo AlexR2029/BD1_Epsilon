@@ -39,6 +39,9 @@ private void guardarEducacionBasica() {
             jTextField3.requestFocus();
             return;
         }
+        if (LimitesTexto.excede(this, "Título", titulo, 40)) {
+            return;
+        }
         
         if (jTextField1.getText().trim().isEmpty() || jTextField2.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Complete el mes y el año de grado.",

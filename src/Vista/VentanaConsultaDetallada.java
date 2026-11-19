@@ -21,6 +21,9 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
         initComponents();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
+        setTitle("Hojas de vida detalladas - seleccione una para ver el detalle");
+        jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        jTextArea1.setEditable(false);
         cargarCandidatos();
 
         jTable1.getSelectionModel().addListSelectionListener(e -> {
@@ -30,6 +33,9 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
                 cargarDetalleCompleto(idCandidato);
             }
         });
+        if (jTable1.getRowCount() > 0) {
+            jTable1.setRowSelectionInterval(0, 0); // muestra de una vez el detalle del primero
+        }
     }
 
     private void cargarCandidatos() {
@@ -55,8 +61,9 @@ public class VentanaConsultaDetallada extends javax.swing.JFrame {
                 });
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar candidatos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error al cargar las hojas de vida: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
+        jTable1.setModel(modelo);
     }
 
     private void cargarDetalleCompleto(long idCandidato) {
