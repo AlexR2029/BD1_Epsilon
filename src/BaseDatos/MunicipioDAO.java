@@ -22,20 +22,26 @@ public class MunicipioDAO {
 
     // La conexión la abre y cierra quien llama, para poder usarla dentro de una transacción
     public MunicipioDAO(Connection con) { this.con = con; }
+    public MunicipioDAO() { this(null); }
 
     /** Municipios con nombre parecido (o igual) al escrito. */
     public List<Municipio> buscarParecidos(String nombre) throws SQLException {
         String buscado = normalizar(nombre);
         List<Municipio> parecidos = new ArrayList<>();
-        try (PreparedStatement st = con.prepareStatement(
-                "SELECT id_municipio, nombre, departamento, pais FROM municipios");
-             ResultSet rs = st.executeQuery()) {
-            while (rs.next()) {
-                String existente = normalizar(rs.getString("nombre"));
-                if (distancia(buscado, existente) <= DISTANCIA_MAXIMA) {
-                    parecidos.add(new Municipio(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+        Connection conexion = con != null ? con : abrir();
+        try {
+            try (PreparedStatement st = conexion.prepareStatement(
+                    "SELECT id_municipio, nombre, departamento, pais FROM municipios");
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    String existente = normalizar(rs.getString("nombre"));
+                    if (distancia(buscado, existente) <= DISTANCIA_MAXIMA) {
+                        parecidos.add(new Municipio(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+                    }
                 }
             }
+        } finally {
+            if (con == null) conexion.close();
         }
         return parecidos;
     }
@@ -43,26 +49,42 @@ public class MunicipioDAO {
     /** Todos los municipios, ordenados por nombre (para llenar combos). */
     public List<Municipio> listar() throws SQLException {
         List<Municipio> lista = new ArrayList<>();
-        try (PreparedStatement st = con.prepareStatement(
-                "SELECT id_municipio, nombre, departamento, pais FROM municipios ORDER BY nombre, departamento");
-             ResultSet rs = st.executeQuery()) {
-            while (rs.next()) {
-                lista.add(new Municipio(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+        Connection conexion = con != null ? con : abrir();
+        try {
+            try (PreparedStatement st = conexion.prepareStatement(
+                    "SELECT id_municipio, nombre, departamento, pais FROM municipios ORDER BY nombre, departamento");
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new Municipio(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+                }
             }
+        } finally {
+            if (con == null) conexion.close();
         }
         return lista;
     }
 
     /** Devuelve el id del municipio, creándolo si no existe (llama a sp_registrar_municipio). */
     public int registrar(String nombre, String departamento, String pais) throws SQLException {
-        try (CallableStatement cs = con.prepareCall("{CALL sp_registrar_municipio(?, ?, ?, ?)}")) {
-            cs.setString(1, nombre);
-            cs.setString(2, departamento);
-            cs.setString(3, pais);
-            cs.registerOutParameter(4, Types.INTEGER);
-            cs.execute();
-            return cs.getInt(4);
+        Connection conexion = con != null ? con : abrir();
+        try {
+            try (CallableStatement cs = conexion.prepareCall("{CALL sp_registrar_municipio(?, ?, ?, ?)}")) {
+                cs.setString(1, nombre);
+                cs.setString(2, departamento);
+                cs.setString(3, pais);
+                cs.registerOutParameter(4, Types.INTEGER);
+                cs.execute();
+                return cs.getInt(4);
+            }
+        } finally {
+            if (con == null) conexion.close();
         }
+    }
+
+    private Connection abrir() throws SQLException {
+        Connection conexion = new BaseDatos().getConexion();
+        if (conexion == null) throw new SQLException("No fue posible abrir la conexión a la base de datos");
+        return conexion;
     }
 
     /** Minúsculas y sin tildes, para comparar "Bogotá" con "bogota". */

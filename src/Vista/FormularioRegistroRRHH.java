@@ -4,9 +4,8 @@
  */
 package Vista;
 
-import BaseDatos.BaseDatos;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import BaseDatos.HojaVidaDAO;
+import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
 /**
@@ -20,6 +19,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
      */
     public FormularioRegistroRRHH() {
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         jTextField5.addActionListener(e -> registrarVerificador());
     }
 
@@ -28,7 +28,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         String nombreCompleto = jTextField2.getText().trim();
         String correo = jTextField3.getText().trim();
         String usuario = jTextField4.getText().trim();
-        String contrasena = jTextField5.getText().trim();
+        String contrasena = new String(jTextField5.getPassword()).trim();
 
         if (identificacion.isEmpty() || nombreCompleto.isEmpty() || correo.isEmpty()
                 || usuario.isEmpty() || contrasena.isEmpty()) {
@@ -36,37 +36,29 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
                     "Campos incompletos", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        String[] nombres = nombreCompleto.split("\\s+", 2);
-        String nombre = nombres[0];
-        String apellido = nombres.length > 1 ? nombres[1] : "";
-        if (apellido.isEmpty() || !correo.contains("@")) {
+        if (LimitesTexto.excede(this, "Nombre completo", nombreCompleto, 100, "Correo", correo, 50,
+                "Usuario", usuario, 50, "Contraseña", contrasena, 50)) {
+            return;
+        }
+        if (nombreCompleto.split("\\s+").length < 2 || !correo.contains("@")) {
             JOptionPane.showMessageDialog(this, "Ingrese nombre y apellido, y un correo válido.",
                     "Datos inválidos", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String sql = "INSERT INTO VERIFICADORES (identificacion, nombres, apellidos, email, telefono) "
-                + "VALUES (?, ?, ?, ?, ?)";
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) {
-                return;
-            }
-            try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-                sentencia.setLong(1, Long.parseLong(identificacion));
-                sentencia.setString(2, nombre);
-                sentencia.setString(3, apellido);
-                sentencia.setString(4, correo);
-                sentencia.setString(5, usuario);
-                sentencia.executeUpdate();
-            }
-            JOptionPane.showMessageDialog(this, "Verificador registrado correctamente.");
+        try {
+            new HojaVidaDAO().registrarPersonalRRHH(Long.parseLong(identificacion),
+                    nombreCompleto, correo, usuario, contrasena);
+            JOptionPane.showMessageDialog(this, "Personal de RRHH registrado correctamente.");
             limpiarCampos();
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "La identificación debe ser numérica.",
                     "Datos inválidos", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "No fue posible registrar el verificador: "
-                    + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            String mensaje = ex.getErrorCode() == 1062
+                    ? "Ya existe una persona de RRHH con esa identificación."
+                    : "No fue posible registrar al personal de RRHH: " + ex.getMessage();
+            JOptionPane.showMessageDialog(this, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -97,7 +89,7 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jTextField4 = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        jTextField5 = new javax.swing.JTextField();
+        jTextField5 = new javax.swing.JPasswordField();
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -235,6 +227,6 @@ public class FormularioRegistroRRHH extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField3;
     private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
+    private javax.swing.JPasswordField jTextField5;
     // End of variables declaration//GEN-END:variables
 }

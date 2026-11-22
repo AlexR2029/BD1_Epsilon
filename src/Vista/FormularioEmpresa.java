@@ -1,14 +1,12 @@
 package Vista;
 
-import BaseDatos.BaseDatos;
+import BaseDatos.HojaVidaDAO;
 import BaseDatos.MunicipioDAO;
+import Modelo.Empresa;
+import Modelo.TipoEmpresa;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -27,7 +25,9 @@ public class FormularioEmpresa extends JFrame {
     private final JTextField txtEmail = new JTextField();
     private final JTextField txtTelefono = new JTextField();
     private final JTextField txtDireccion = new JTextField();
-    private final JComboBox<MunicipioDAO.Municipio> cbMunicipio = new JComboBox<>();
+    private final ListaConNuevo<MunicipioDAO.Municipio> lstMunicipio = new ListaConNuevo<>(
+            () -> new MunicipioDAO().listar(), FormularioMunicipio::new,
+            MunicipioDAO.Municipio::toString, "Nuevo municipio"); // se muestra "Cali - Valle del Cauca"
 
     public FormularioEmpresa() {
         setTitle("Registrar empresa");
@@ -45,13 +45,7 @@ public class FormularioEmpresa extends JFrame {
         campos.add(new JLabel("DIRECCIÓN"));
         campos.add(txtDireccion);
         campos.add(new JLabel("MUNICIPIO"));
-
-        JPanel municipio = new JPanel(new BorderLayout(5, 0));
-        municipio.add(cbMunicipio, BorderLayout.CENTER);
-        JButton btnNuevoMunicipio = new JButton("Nuevo municipio");
-        btnNuevoMunicipio.addActionListener(e -> abrirNuevoMunicipio());
-        municipio.add(btnNuevoMunicipio, BorderLayout.EAST);
-        campos.add(municipio);
+        campos.add(lstMunicipio);
 
         JButton btnGuardar = new JButton("Guardar");
         JButton btnLimpiar = new JButton("Limpiar");
@@ -73,28 +67,6 @@ public class FormularioEmpresa extends JFrame {
         setContentPane(raiz);
         setSize(420, 400);
         setLocationRelativeTo(null);
-        cargarMunicipios();
-    }
-
-    private void cargarMunicipios() {
-        cbMunicipio.removeAllItems();
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-            for (MunicipioDAO.Municipio m : new MunicipioDAO(conexion).listar()) {
-                cbMunicipio.addItem(m); // se muestra "Cali - Valle del Cauca"
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "No se pudieron cargar los municipios: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void abrirNuevoMunicipio() {
-        FormularioMunicipio f = new FormularioMunicipio();
-        f.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) { cargarMunicipios(); }
-        });
-        f.setVisible(true);
     }
 
     private void limpiar() {
@@ -103,7 +75,6 @@ public class FormularioEmpresa extends JFrame {
         txtEmail.setText("");
         txtTelefono.setText("");
         txtDireccion.setText("");
-        if (cbMunicipio.getItemCount() > 0) cbMunicipio.setSelectedIndex(0);
         txtNombre.requestFocus();
     }
 
@@ -112,7 +83,7 @@ public class FormularioEmpresa extends JFrame {
         String email = txtEmail.getText().trim();
         String telefono = txtTelefono.getText().trim();
         String direccion = txtDireccion.getText().trim();
-        MunicipioDAO.Municipio municipio = (MunicipioDAO.Municipio) cbMunicipio.getSelectedItem();
+        MunicipioDAO.Municipio municipio = lstMunicipio.seleccionado();
 
         if (nombre.isEmpty() || email.isEmpty() || telefono.isEmpty() || direccion.isEmpty() || municipio == null) {
             JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios y debe haber un municipio registrado.", "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -127,18 +98,10 @@ public class FormularioEmpresa extends JFrame {
             return;
         }
 
-        String sql = "INSERT INTO EMPRESAS (nombre, tipo_empresa, email_empresa, telefono, direccion, id_municipio) VALUES (?, ?, ?, ?, ?, ?)";
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-                pst.setString(1, nombre);
-                pst.setString(2, cbTipo.getSelectedItem().toString());
-                pst.setString(3, email);
-                pst.setString(4, telefono);
-                pst.setString(5, direccion);
-                pst.setInt(6, municipio.id());
-                pst.executeUpdate();
-            }
+        try {
+            Empresa empresa = new Empresa(nombre, TipoEmpresa.valueOf(cbTipo.getSelectedItem().toString()),
+                    municipio.pais(), municipio.departamento(), municipio.nombre(), email, telefono, direccion);
+            new HojaVidaDAO().registrarEmpresa(empresa);
             JOptionPane.showMessageDialog(this, "Empresa registrada.");
             limpiar();
         } catch (SQLException e) {

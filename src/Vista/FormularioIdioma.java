@@ -3,11 +3,9 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Vista;
-import BaseDatos.BaseDatos;
+import BaseDatos.HojaVidaDAO;
 import Modelo.Idioma;
 import Modelo.NivelCompetencia;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import javax.swing.JOptionPane;
 /**
  *
@@ -21,6 +19,7 @@ private long numeroIdentificacionCandidato;
     public FormularioIdioma(long numeroIdentificacionCandidato) {
         this.numeroIdentificacionCandidato = numeroIdentificacionCandidato;
         initComponents();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         // Llenar los ComboBox de niveles con las opciones R, B, MB
@@ -49,6 +48,9 @@ private long numeroIdentificacionCandidato;
                 jTextField1.requestFocus();
                 return false;
             }
+            if (LimitesTexto.excede(this, "Idioma", nombreIdioma, 20)) {
+                return false;
+            }
 
             // Validar la regla de la base de datos que prohíbe el español
             if (nombreIdioma.equals("ESPAÑOL") || nombreIdioma.equals("SPANISH")) {
@@ -69,24 +71,7 @@ private long numeroIdentificacionCandidato;
             // Crear objeto del modelo del equipo
             Idioma idioma = new Idioma(nombreIdioma, habla, lectura, escritura);
 
-            // Conexión y centencia SQL para IDIOMAS_CANDIDATOS
-            BaseDatos bd = new BaseDatos();
-            Connection conexion = bd.getConexion();
-            if (conexion == null) {
-                throw new java.sql.SQLException("No fue posible conectarse a la base de datos.");
-            }
-
-            String sql = "INSERT INTO IDIOMAS_CANDIDATOS (numero_identificacion_candidato, nombre, habla, lectura, escritura) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement pst = conexion.prepareStatement(sql)) {
-            pst.setLong(1, numeroIdentificacionCandidato);
-            pst.setString(2, idioma.getNombreIdioma());
-            pst.setString(3, idioma.getHabla().name());
-            pst.setString(4, idioma.getLectura().name());
-            pst.setString(5, idioma.getEscritura().name());
-
-            pst.executeUpdate();
-            conexion.close();
-            }
+            new HojaVidaDAO().registrarIdioma(numeroIdentificacionCandidato, idioma);
             return true;
 
         } catch (IllegalArgumentException e) {
@@ -236,7 +221,7 @@ private long numeroIdentificacionCandidato;
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         if (!jTextField1.getText().trim().isEmpty()) {
             if (registrarIdiomaBD()) {
-                JOptionPane.showMessageDialog(this, "¡Proceso de registro de idioma realizado con éxito!");
+                // sin alerta de éxito: la siguiente ventana se abre directamente
                 this.dispose();
                 new FormularioExperienciaLaboral(numeroIdentificacionCandidato).setVisible(true);
             }

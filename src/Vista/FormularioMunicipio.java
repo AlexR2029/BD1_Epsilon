@@ -1,11 +1,10 @@
 package Vista;
 
-import BaseDatos.BaseDatos;
 import BaseDatos.MunicipioDAO;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -76,9 +75,8 @@ public class FormularioMunicipio extends JFrame {
             return;
         }
 
-        try (Connection conexion = new BaseDatos().getConexion()) {
-            if (conexion == null) return; // BaseDatos ya mostró el error de conexión
-            MunicipioDAO dao = new MunicipioDAO(conexion);
+        try {
+            MunicipioDAO dao = new MunicipioDAO();
 
             List<MunicipioDAO.Municipio> parecidos = dao.buscarParecidos(nombre);
             for (MunicipioDAO.Municipio m : parecidos) {
